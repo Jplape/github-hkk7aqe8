@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 
 interface User {
-  email: string;
   id: string;
+  email?: string;
+  phone?: string;
+  user_metadata?: Record<string, any>;
+  app_metadata?: Record<string, any>;
 }
 
 interface AuthState {

@@ -1,0 +1,22 @@
+/* Pour le texte caché uniquement pour les lecteurs d'écran */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Styles de base pour les éléments accessibles */
+.accessible-focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.accessible-focus:focus {
+  outline-color: currentColor;
+}

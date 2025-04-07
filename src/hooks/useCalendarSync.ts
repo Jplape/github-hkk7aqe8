@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { parseISO, isValid } from 'date-fns';
 import { useTaskStore } from '../store/taskStore';
 import { useCalendarStore } from '../store/calendarStore';
 import { filterTasksForDateRange, groupTasksByDate } from '../utils/calendarViewSync';
-import { validateTaskTime } from '../utils/calendarTaskSync';
 import { Task } from '../types/task';
 
 export function useCalendarSync() {
@@ -17,27 +15,22 @@ export function useCalendarSync() {
 
   const syncTasks = useCallback(() => {
     try {
-      // Filter out tasks with invalid dates/times
-      const validTasks = tasks.filter(task => 
-        task.date && 
-        isValid(parseISO(task.date)) && 
-        validateTaskTime(task)
-      );
+      const validTasks = [...tasks];
 
       // Get visible date range based on current view
       const { start, end } = getVisibleDateRange();
 
       // Filter tasks for the visible range and apply filters
-      const filteredTasks = filterTasksForDateRange(validTasks, start, end, filters);
+      const filteredTasks = filterTasksForDateRange(validTasks, start, end);
 
-      // Sort tasks by time and priority
+      // Sort tasks by date, time and priority
       const sortedTasks = filteredTasks.sort((a, b) => {
         // Sort by date first
         const dateCompare = a.date.localeCompare(b.date);
         if (dateCompare !== 0) return dateCompare;
 
         // Then by time
-        const timeCompare = a.startTime.localeCompare(b.startTime);
+        const timeCompare = a.time.start.localeCompare(b.time.start);
         if (timeCompare !== 0) return timeCompare;
 
         // Finally by priority
@@ -55,18 +48,24 @@ export function useCalendarSync() {
   }, [tasks, currentDate, view, filters, getVisibleDateRange]);
 
   // Sync when dependencies change, but skip the first render
+  // Sync whenever tasks change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      syncTasks();
+    }, 100); // Small debounce to avoid excessive updates
+
+    return () => clearTimeout(timeoutId);
+  }, [tasks, syncTasks]);
+
+  // Also sync when calendar view/filters change
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
     
-    const timeoutId = setTimeout(() => {
-      syncTasks();
-    }, 0);
-
-    return () => clearTimeout(timeoutId);
-  }, [syncTasks, lastSync]);
+    syncTasks();
+  }, [currentDate, view, filters, lastSync, syncTasks]);
 
   // Initial sync
   useEffect(() => {

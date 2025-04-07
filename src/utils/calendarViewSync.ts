@@ -1,59 +1,57 @@
-import { Task } from '../store/taskStore';
-import { isWithinInterval, parseISO, isValid } from 'date-fns';
+import { Task } from '../types/task';
 
 export function filterTasksForDateRange(
-  tasks: Task[],
+  tasks: Task[], 
   startDate: Date,
   endDate: Date,
-  filters: { technician: string; client: string }
-): Task[] {
+) {
   return tasks.filter(task => {
+    if (!task.date) return false;
+    
     try {
-      // Parse and validate task date
-      const taskDate = parseISO(task.date);
-      if (!isValid(taskDate)) return false;
-
-      // Apply date range filter
-      const isInRange = isWithinInterval(taskDate, { start: startDate, end: endDate });
-      if (!isInRange) return false;
-
-      // Apply technician filter
-      if (filters.technician !== 'all' && task.technicianId !== filters.technician) {
-        return false;
-      }
-
-      // Apply client filter
-      if (filters.client !== 'all' && task.client !== filters.client) {
-        return false;
-      }
-
-      return true;
+      // Normaliser les dates en comparant seulement les parties YYYY-MM-DD
+      const taskDateStr = task.date.split('T')[0];
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      return taskDateStr >= startDateStr && taskDateStr <= endDateStr;
     } catch {
       return false;
     }
   });
 }
 
-export function groupTasksByDate(tasks: Task[]): Record<string, Task[]> {
-  const grouped = tasks.reduce((acc, task) => {
-    if (!task.date || !isValid(parseISO(task.date))) return acc;
-    
-    const dateKey = task.date;
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
-    }
-    acc[dateKey].push(task);
-    return acc;
-  }, {} as Record<string, Task[]>);
+export function groupTasksByDate(tasks: Task[]) {
+  const grouped: Record<string, Task[]> = {};
 
-  // Sort tasks within each group
-  Object.keys(grouped).forEach(date => {
-    grouped[date].sort((a, b) => {
-      const timeCompare = a.startTime.localeCompare(b.startTime);
-      if (timeCompare !== 0) return timeCompare;
-      
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
+  tasks.forEach((task) => {
+    if (task.date) {
+      const taskDate = task.date.split('T')[0]; // Normalisation de la date
+      if (!grouped[taskDate]) {
+        grouped[taskDate] = [];
+      }
+      grouped[taskDate].push(task);
+    }
+  });
+
+  // Tri des tâches par priorité puis par heure
+  Object.keys(grouped).forEach((date) => {
+    grouped[date].sort((a: Task, b: Task) => {
+      const priorityOrder = {
+        high: 1,
+        medium: 2, 
+        low: 3
+      };
+
+      // D'abord par priorité
+      if (a.priority !== b.priority) {
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+
+      // Puis par heure de début
+      const aTime = a.time?.start || '00:00';
+      const bTime = b.time?.start || '00:00';
+      return aTime.localeCompare(bTime);
     });
   });
 

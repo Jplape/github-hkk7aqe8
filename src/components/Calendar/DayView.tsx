@@ -1,7 +1,7 @@
 import { format, isToday } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Plus, Clock, User, MapPin, AlertCircle } from 'lucide-react';
-import { Task } from '../../store/taskStore';
+import { Task } from '../../types/task';
 import { useTeamStore } from '../../store/teamStore';
 import { DroppableDay } from './DroppableDay';
 import { validateTaskTime, getTaskPosition, sortTasksByTime } from '../../utils/calendarTaskSync';
@@ -121,7 +121,7 @@ export default function DayView({
                         <div className="space-y-1 text-xs text-gray-600">
                           <div className="flex items-center">
                             <Clock className="h-3 w-3 mr-1" />
-                            {task.startTime}
+                            {task.time.start}
                           </div>
                           {technician && (
                             <div className="flex items-center">
@@ -131,7 +131,7 @@ export default function DayView({
                           )}
                           <div className="flex items-center">
                             <MapPin className="h-3 w-3 mr-1" />
-                            <span className="truncate">{task.client}</span>
+                            <span className="truncate">{task.client.name}</span>
                           </div>
                         </div>
                       </div>
@@ -158,6 +158,7 @@ export default function DayView({
         <button
           onClick={() => onNewTask(dateStr)}
           className="absolute bottom-4 right-4 p-2 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors"
+          aria-label={`Ajouter une tâche pour le ${format(currentDate, 'd MMMM yyyy', { locale: fr })}`}
         >
           <Plus className="h-5 w-5" />
         </button>

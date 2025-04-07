@@ -25,10 +25,12 @@ export default function CalendarNavigation({
         <button
           onClick={() => onViewChange('month')}
           className={`px-3 py-1 rounded transition-colors ${
-            view === 'month' 
-              ? 'bg-indigo-100 text-indigo-600' 
+            view === 'month'
+              ? 'bg-indigo-100 text-indigo-600'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
+          aria-label="Vue mensuelle"
+          aria-current={view === 'month' ? 'true' : 'false'}
         >
           Mois
         </button>
@@ -39,6 +41,8 @@ export default function CalendarNavigation({
               ? 'bg-indigo-100 text-indigo-600'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
+          aria-label="Vue hebdomadaire"
+          aria-current={view === 'week' ? 'true' : 'false'}
         >
           Semaine
         </button>
@@ -49,6 +53,8 @@ export default function CalendarNavigation({
               ? 'bg-indigo-100 text-indigo-600'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
+          aria-label="Vue quotidienne"
+          aria-current={view === 'day' ? 'true' : 'false'}
         >
           Jour
         </button>

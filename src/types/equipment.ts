@@ -47,7 +47,9 @@ export interface Equipment {
     message: string;
     dueDate: string;
   }[];
+  equipmentType: string;
   specifications?: Record<string, string>;
+  operatingHours?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;

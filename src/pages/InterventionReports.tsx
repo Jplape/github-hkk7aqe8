@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Download, Filter, Plus, X, ChevronDown, ChevronUp, Link as LinkIcon } from 'lucide-react';
+import { Search, Filter, Plus, X, ChevronDown, ChevronUp, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useReportStore, InterventionReport } from '../store/reportStore';
 import { useTaskStore } from '../store/taskStore';
@@ -8,8 +8,7 @@ import ReportGenerator from '../components/Reports/ReportGenerator';
 import InterventionReportForm from '../components/Reports/InterventionReportForm';
 import ExportButton from '../components/Reports/ExportButton';
 import { generatePDF, generateExcel } from '../utils/reportExport';
-import { format, parseISO, isValid } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { format, isValid } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 type SortField = 'id' | 'date' | 'client' | 'equipment' | 'status' | 'taskId';
@@ -72,9 +71,45 @@ export default function InterventionReports() {
     setIsFormOpen(true);
   };
 
+  const transformFormData = (formData: any) => {
+    return {
+      taskId: formData.taskId,
+      date: formData.date,
+      clientName: formData.client?.name || '',
+      clientAddress: formData.client?.address || '',
+      clientContact: formData.client?.contact || '',
+      clientEmail: formData.client?.email || '',
+      technicianId: formData.technician?.id || '',
+      equipmentId: formData.equipment?.id || '',
+      equipmentType: formData.equipment?.name || '',
+      brand: formData.equipment?.brand || '',
+      model: formData.equipment?.model || '',
+      serialNumber: formData.equipment?.serialNumber || '',
+      location: formData.equipment?.location || '',
+      operatingHours: formData.equipment?.operatingHours || '',
+      specifications: formData.equipment?.specifications || '',
+      problem: formData.problem || '',
+      description: formData.description || '',
+      findings: Array.isArray(formData.findings) ? formData.findings : [],
+      recommendations: [], // Ajout des recommandations vides
+      actions: Array.isArray(formData.actions) ? formData.actions : [],
+      partsUsed: Array.isArray(formData.partsUsed) ? formData.partsUsed : [],
+      technicianNotes: formData.technicianNotes || '',
+      status: 'draft',
+      statusHistory: [{
+        from: 'draft' as const,
+        to: 'draft' as const,
+        timestamp: new Date().toISOString(),
+        userId: formData.technician?.id || ''
+      }],
+      service: 'maintenance' // Ajout du service par défaut
+    };
+  };
+
   const handleReportSubmit = async (formData: any) => {
     try {
-      const report = await addReport(formData);
+      const transformedData = transformFormData(formData);
+      const report = await addReport(transformedData);
       toast.success('Rapport créé avec succès');
       setIsFormOpen(false);
       setSelectedReport(report);
@@ -86,11 +121,11 @@ export default function InterventionReports() {
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Date non définie';
     try {
-      const date = parseISO(dateString);
+      const date = new Date(dateString);
       if (!isValid(date)) {
         return 'Date invalide';
       }
-      return format(date, 'dd MMMM yyyy', { locale: fr });
+      return format(new Date(date), 'dd MMMM yyyy');
     } catch {
       return 'Date invalide';
     }
@@ -107,8 +142,8 @@ export default function InterventionReports() {
       case 'date':
         if (!a.date || !b.date) return 0;
         try {
-          const dateA = parseISO(a.date);
-          const dateB = parseISO(b.date);
+          const dateA = new Date(a.date || '');
+          const dateB = new Date(b.date || '');
           if (!isValid(dateA) || !isValid(dateB)) return 0;
           return direction * (dateA.getTime() - dateB.getTime());
         } catch {
@@ -131,9 +166,8 @@ export default function InterventionReports() {
         (report.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (report.taskId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (report.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (report.equipmentType || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (report.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-
+        (report.equipmentType || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
       const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
 
       return matchesSearch && matchesStatus;

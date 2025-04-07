@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import useSyncReports from './hooks/useSyncReports';
@@ -37,7 +37,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <MockAuthProvider>
-          <BrowserRouter>
+          <>
             <Toaster
               position="top-right"
               toastOptions={{
@@ -80,7 +80,7 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
-          </BrowserRouter>
+          </>
         </MockAuthProvider>
       </ErrorBoundary>
     </QueryClientProvider>

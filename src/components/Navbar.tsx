@@ -31,6 +31,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             <button
               onClick={onMenuClick}
               className="p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 md:hidden"
+              aria-label="Ouvrir le menu"
             >
               <Menu className="h-6 w-6" />
             </button>
@@ -39,9 +40,10 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           
           <div className="flex items-center space-x-4">
             <div ref={notificationRef} className="relative">
-              <button 
+              <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="p-2 rounded-full hover:bg-gray-100 relative"
+                aria-label="Notifications"
               >
                 <Bell className="h-6 w-6 text-gray-600" />
                 <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 transform translate-x-1/2 -translate-y-1/2"></span>
@@ -52,7 +54,10 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
               )}
             </div>
             
-            <button className="p-2 rounded-full hover:bg-gray-100">
+            <button
+              className="p-2 rounded-full hover:bg-gray-100"
+              aria-label="Profil utilisateur"
+            >
               <User className="h-6 w-6 text-gray-600" />
             </button>
           </div>

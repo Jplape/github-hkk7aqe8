@@ -29,6 +29,7 @@ export default function CalendarFilters({ clients, filters, onFilterChange }: Ca
         value={filters.technician}
         onChange={(e) => onFilterChange({ ...filters, technician: e.target.value })}
         className="block rounded-md border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+        aria-label="Filtrer par technicien"
       >
         <option value="all">Tous les techniciens</option>
         {members.map((member) => (
@@ -42,6 +43,7 @@ export default function CalendarFilters({ clients, filters, onFilterChange }: Ca
         value={filters.client}
         onChange={(e) => onFilterChange({ ...filters, client: e.target.value })}
         className="block rounded-md border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+        aria-label="Filtrer par client"
       >
         <option value="all">Tous les clients</option>
         {clients.map((client) => (
@@ -55,6 +57,7 @@ export default function CalendarFilters({ clients, filters, onFilterChange }: Ca
         <button
           onClick={clearFilters}
           className="inline-flex items-center px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+          aria-label="Réinitialiser les filtres"
         >
           <X className="h-4 w-4 mr-1" />
           Réinitialiser

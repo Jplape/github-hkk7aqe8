@@ -23,60 +23,86 @@ export function useTaskSync() {
   };
 
   useEffect(() => {
-    const subscription = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tasks'
-        },
-        (payload) => {
-          const p = payload as unknown as { 
-            new?: Task; 
-            old?: Task; 
-            eventType: string 
-          };
-          
-          if (!p.new) return;
-          const taskId = p.new.id;
-          if (!taskId || pendingSyncs.current.has(taskId)) return;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const setupSubscription = () => {
+      const subscription = supabase
+        .channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'tasks'
+          },
+          (payload) => {
+            const p = payload as unknown as {
+              new?: Task;
+              old?: Task;
+              eventType: string
+            };
+            
+            if (!p.new) return;
+            const taskId = p.new.id;
+            if (!taskId || pendingSyncs.current.has(taskId)) return;
 
-          try {
-            switch (p.eventType) {
-              case 'INSERT':
-                addTask({ 
-                  ...p.new,
-                  origin: 'remote'
-                });
-                break;
-              case 'UPDATE':
-                const localTask = tasks.find(t => t.id === p.new?.id);
-                if (localTask && p.new) {
-                  const resolvedTask = resolveConflict(localTask, p.new);
-                  updateTask(resolvedTask.id, { 
-                    ...resolvedTask, 
-                    origin: 'remote'
+            try {
+              switch (p.eventType) {
+                case 'INSERT':
+                  addTask({
+                    ...p.new,
+                    origin: 'remote',
+                    _status: 'synced'
                   });
-                }
-                break;
-              case 'DELETE':
-                if (p.old) {
-                  deleteTask(p.old.id);
-                }
-                break;
+                  break;
+                case 'UPDATE':
+                  const localTask = tasks.find(t => t.id === p.new?.id);
+                  if (localTask && p.new) {
+                    const resolvedTask = resolveConflict(localTask, p.new);
+                    updateTask(resolvedTask.id, {
+                      ...resolvedTask,
+                      origin: 'remote',
+                      _status: 'synced'
+                    });
+                  }
+                  break;
+                case 'DELETE':
+                  if (p.old) {
+                    deleteTask(p.old.id);
+                  }
+                  break;
+              }
+              updateLastSync();
+              retryCount = 0; // Reset retry counter on success
+            } catch (error) {
+              console.error('Sync error:', error);
+              if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(setupSubscription, 1000 * retryCount);
+              }
             }
-            updateLastSync();
-          } catch (error) {
-            console.error('Sync error:', error);
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe((_, err) => {
+          if (err) {
+            console.error('Subscription error:', err);
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(setupSubscription, 1000 * retryCount);
+            }
+          }
+        });
+
+      return subscription;
+    };
+
+    const subscription = setupSubscription();
 
     return () => {
-      supabase.removeChannel(subscription);
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
     };
   }, [addTask, updateTask, deleteTask, updateLastSync, tasks]);
 

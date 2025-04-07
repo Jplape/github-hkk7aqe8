@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { Task } from '../../store/taskStore';
+import { Task } from '../../types/task';
 import TaskForm from '../Tasks/TaskForm';
 import { useTaskStore } from '../../store/taskStore';
 
@@ -22,14 +22,18 @@ export default function NewTaskModal({ isOpen, onClose, selectedDate, taskToEdit
     const taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'> = {
       title: formData.title,
       date: formData.date,
-      startTime: formData.startTime || '09:00',
+      time: {
+        start: formData.time?.start || '09:00',
+        end: formData.time?.end || '10:00'
+      },
       duration: formData.duration || 60,
-      client: formData.client || '',
+      client: typeof formData.client === 'string'
+        ? { id: '', name: formData.client }
+        : formData.client || { id: '', name: '' },
       description: formData.description || '',
-      equipment: formData.equipment || '',
-      brand: formData.brand || '',
-      model: formData.model || '',
-      serialNumber: formData.serialNumber || '',
+      equipment: typeof formData.equipment === 'string'
+        ? { name: formData.equipment }
+        : formData.equipment,
       technicianId: formData.technicianId || '',
       status: formData.status || 'pending',
       priority: formData.priority || 'medium'
@@ -56,6 +60,7 @@ export default function NewTaskModal({ isOpen, onClose, selectedDate, taskToEdit
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500"
+            aria-label="Fermer la modal"
           >
             <X className="h-6 w-6" />
           </button>

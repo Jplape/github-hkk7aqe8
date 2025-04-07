@@ -113,16 +113,16 @@ export default function TaskSummary({ tasks, onTaskClick }: TaskSummaryProps) {
               <div className="mt-2 space-y-1">
                 <div className="flex items-center text-xs text-gray-500">
                   <Clock className="h-3 w-3 mr-1" />
-                  {formatTaskDate(task.date)} à {task.startTime || 'Heure non définie'}
+                  {formatTaskDate(task.date)} à {task.time ? (typeof task.time === 'string' ? task.time : task.time?.start?.toString()) || 'Heure non définie' : 'Heure non définie'}
                 </div>
                 <div className="flex items-center text-xs text-gray-500">
                   <MapPin className="h-3 w-3 mr-1" />
-                  {task.client || 'Client non défini'}
+                  {task.client ? (typeof task.client === 'string' ? task.client : task.client?.name?.toString() || 'Client non défini') : 'Client non défini'}
                 </div>
                 {task.technicianId && (
                   <div className="flex items-center text-xs text-gray-500">
                     <User className="h-3 w-3 mr-1" />
-                    ID Technicien: {task.technicianId}
+                    {task.technicianId ? `ID Technicien: ${task.technicianId.toString()}` : 'Technicien non assigné'}
                   </div>
                 )}
               </div>

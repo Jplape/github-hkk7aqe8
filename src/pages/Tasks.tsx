@@ -46,14 +46,19 @@ export default function Tasks() {
   }, [filters, setSearchParams]);
 
   // Get unique clients for filters
-  const clients = Array.from(new Set(tasks.map(task => task.client)));
+  const clients = Array.from(new Set(tasks.map(task =>
+    typeof task.client === 'string' ? task.client : task.client?.name || ''
+  )));
 
   const sortedAndFilteredTasks = useMemo(() => {
     let filteredTasks = filterTasks(
       tasks.filter(task =>
         task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (task.equipment && task.equipment.toLowerCase().includes(searchTerm.toLowerCase()))
+        (typeof task.client === 'string' ? task.client : task.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (task.equipment?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         task.equipment?.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         task.equipment?.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         task.equipment?.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()))
       ),
       filters
     );
@@ -81,7 +86,7 @@ export default function Tasks() {
           comparison = a.client.localeCompare(b.client);
           break;
         case 'equipment':
-          comparison = (a.equipment || '').localeCompare(b.equipment || '');
+          comparison = (a.equipment?.name || '').localeCompare(b.equipment?.name || '');
           break;
       }
 
@@ -117,6 +122,45 @@ export default function Tasks() {
       setFilters(prev => ({ ...prev, status }));
     }
   }, [searchParams]);
+
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const errorListener = (e: ErrorEvent) => {
+      console.error('Global error caught:', e.error);
+      setError(e.message || 'Une erreur est survenue');
+    };
+    
+    const unhandledRejectionListener = (e: PromiseRejectionEvent) => {
+      console.error('Unhandled rejection:', e.reason);
+      setError(e.reason?.message || 'Une erreur est survenue');
+    };
+
+    window.addEventListener('error', errorListener);
+    window.addEventListener('unhandledrejection', unhandledRejectionListener);
+    
+    return () => {
+      window.removeEventListener('error', errorListener);
+      window.removeEventListener('unhandledrejection', unhandledRejectionListener);
+    };
+  }, []);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full">
+          <div className="text-red-500 font-medium mb-2">Erreur</div>
+          <p className="mb-4">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -250,21 +294,19 @@ export default function Tasks() {
                     {task.title}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {task.client}
+                    {typeof task.client === 'string' ? task.client : task.client?.name || 'Client inconnu'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div>
                       {task.equipment && (
                         <>
-                          <div>{task.equipment}</div>
-                          {task.brand && task.model && (
+                          <div>{task.equipment.name || 'Équipement'}</div>
+                          <div className="text-xs text-gray-400">
+                            {task.equipment.brand} {task.equipment.model}
+                          </div>
+                          {task.equipment.serialNumber && (
                             <div className="text-xs text-gray-400">
-                              {task.brand} {task.model}
-                            </div>
-                          )}
-                          {task.serialNumber && (
-                            <div className="text-xs text-gray-400">
-                              N° série: {task.serialNumber}
+                              N° série: {task.equipment.serialNumber}
                             </div>
                           )}
                         </>
@@ -286,7 +328,7 @@ export default function Tasks() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {task.technicianId || 'Non assigné'}
+                    {typeof task.technicianId === 'string' ? task.technicianId : task.technicianId?.name || 'Non assigné'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button

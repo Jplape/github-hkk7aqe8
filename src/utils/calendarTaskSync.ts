@@ -1,67 +1,125 @@
-import { Task } from '../store/taskStore';
-import { parseISO, isValid } from 'date-fns';
+import { Task } from '../types/task';
 
-export function validateTaskTime(task: Task): boolean {
-  if (!task.startTime || !task.date) return false;
-  
-  try {
-    // Validate date
-    const date = parseISO(task.date);
-    if (!isValid(date)) return false;
+export function sortTasksByPriority(tasks: Task[]): Task[] {
+  return tasks.sort((a: Task, b: Task) => {
+    const priorityOrder = {
+      high: 1,
+      medium: 2, 
+      low: 3
+    };
 
-    // Validate time format and values
-    const [hours, minutes] = task.startTime.split(':').map(Number);
-    if (isNaN(hours) || isNaN(minutes)) return false;
-    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return false;
+    // First by priority
+    if (a.priority !== b.priority) {
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    }
 
-    // Validate duration
-    if (typeof task.duration !== 'number' || task.duration <= 0) return false;
-
-    return true;
-  } catch {
-    return false;
-  }
+    // Then by start time
+    const aTime = a.time.start;
+    const bTime = b.time.start;
+    return aTime.localeCompare(bTime);
+  });
 }
 
-export function getTaskPosition(task: Task, hourHeight: number, startHour: number): {
-  top: number;
-  height: number;
-} {
-  if (!validateTaskTime(task)) {
+export function validateTaskTime(task: Task, strict = true): boolean {
+  // Si la tâche n'a pas d'objet time valide, assigner une plage horaire par défaut
+  if (!task.time || typeof task.time !== 'object' || !task.time.start || !task.time.end) {
+    task.time = { start: '08:00', end: '09:00' };
+    return true;
+  }
+
+  // Valider le format des heures (plus flexible en mode non strict)
+  const timeRegex = strict
+    ? /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+    : /^([01]?[0-9]|2[0-3])(:[0-5][0-9])?$/;
+
+  if (!timeRegex.test(task.time.start) || !timeRegex.test(task.time.end)) {
+    return false;
+  }
+
+  // Normaliser les formats (ajouter :00 si minutes manquantes en mode non strict)
+  if (!strict) {
+    if (!task.time.start.includes(':')) task.time.start += ':00';
+    if (!task.time.end.includes(':')) task.time.end += ':00';
+  }
+
+  // Parser les heures/minutes
+  const [startHours, startMinutes] = task.time.start.split(':').map(Number);
+  const [endHours, endMinutes] = task.time.end.split(':').map(Number);
+
+  // Valider les plages horaires
+  if (startHours > 23 || startMinutes > 59 || endHours > 23 || endMinutes > 59) {
+    return false;
+  }
+
+  // Vérifier que end est après start (sauf si non strict pour les événements instantanés)
+  if (strict && (startHours > endHours || (startHours === endHours && startMinutes >= endMinutes))) {
+    return false;
+  }
+
+  return true;
+}
+
+export function filterTasksByTechnician(
+  tasks: Task[],
+  technicianId: string
+): Task[] {
+  return tasks.filter((task: Task) =>
+    task.technicianId === technicianId
+  );
+}
+
+export function getTaskPosition(
+  task: Task,
+  hourHeight: number,
+  startHour: number,
+  timezone: string = 'UTC'
+): { top: number; height: number } {
+  // Fallback position if invalid task time
+  if (!task?.time?.start || !task?.time?.end) {
     return { top: 0, height: hourHeight };
   }
 
-  const [hours, minutes] = task.startTime.split(':').map(Number);
-  const startMinutes = hours * 60 + minutes;
-  const relativeMinutes = startMinutes - startHour * 60;
-  
-  const top = (relativeMinutes / 60) * hourHeight;
-  const height = Math.max((task.duration / 60) * hourHeight, 50); // Minimum height of 50px
-  
-  return { top, height };
+  try {
+    // Convert to timezone-aware dates
+    const now = new Date();
+    const startDate = new Date(`${now.toISOString().split('T')[0]}T${task.time.start}`);
+    const endDate = new Date(`${now.toISOString().split('T')[0]}T${task.time.end}`);
+
+    // Format times according to specified timezone
+    const timeFormatter = new Intl.DateTimeFormat('fr', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    const [startHours, startMinutes] = timeFormatter.format(startDate)
+      .split(':')
+      .map(Number);
+    const [endHours, endMinutes] = timeFormatter.format(endDate)
+      .split(':')
+      .map(Number);
+
+    // Calculate total minutes from start of day (timezone adjusted)
+    const startTotalMinutes = (startHours - startHour) * 60 + startMinutes;
+    const endTotalMinutes = (endHours - startHour) * 60 + endMinutes;
+    
+    // Convert to pixels based on hourHeight (80px = 60 minutes)
+    const top = Math.max(0, startTotalMinutes * (hourHeight / 60));
+    const height = Math.max(
+      hourHeight,
+      (endTotalMinutes - startTotalMinutes) * (hourHeight / 60)
+    );
+    
+    return { top, height };
+  } catch (error) {
+    console.error('Error calculating task position:', error);
+    return { top: 0, height: hourHeight };
+  }
 }
 
 export function sortTasksByTime(tasks: Task[]): Task[] {
-  return [...tasks]
-    .filter(validateTaskTime)
-    .sort((a, b) => {
-      // Sort by time first
-      const timeCompare = a.startTime.localeCompare(b.startTime);
-      if (timeCompare !== 0) return timeCompare;
-      
-      // Then by priority
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    });
-}
-
-export function formatTaskTime(time: string | undefined): string {
-  if (!time) return '';
-  
-  try {
-    const [hours, minutes] = time.split(':').map(Number);
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  } catch {
-    return '';
-  }
+  return tasks.sort((a, b) => {
+    return a.time.start.localeCompare(b.time.start);
+  });
 }

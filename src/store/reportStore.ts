@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { format } from 'date-fns';
-import { syncInterventionReports } from '../lib/firestore';
+import { syncInterventionReports } from '../lib/supabaseReport';
 
 export interface StatusTransition {
   from: 'draft' | 'submitted' | 'approved' | 'rejected';
@@ -27,6 +27,20 @@ export interface InterventionReport {
   findings: string[];
   recommendations: string[];
   nextMaintenanceDate?: string;
+  nextMaintenanceNotes?: string;
+  clientAddress?: string;
+  clientContact?: string;
+  clientEmail?: string;
+  model?: string;
+  location?: string;
+  operatingHours?: string;
+  problem?: string;
+  partsUsed?: Array<{
+    name: string;
+    reference?: string;
+    quantity?: number;
+  }>;
+  technicianNotes?: string;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
   rejectionReason?: string;
   createdAt: string;

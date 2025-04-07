@@ -14,12 +14,14 @@ import CalendarFilters from '../components/Calendar/CalendarFilters';
 import TaskContextMenu from '../components/Calendar/TaskContextMenu';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
-import { Task } from '../store/taskStore';
+import type { Task } from '../types/task';
 
 export default function Calendar() {
   const { moveTask } = useTaskStore();
   const { filters, setFilters } = useCalendarStore();
   const { tasks } = useCalendarSync();
+  
+  const calendarTasks = tasks.filter(task => task.date);
   const {
     currentDate,
     view,
@@ -113,7 +115,15 @@ export default function Calendar() {
         
         <div className="flex items-center space-x-4">
           <CalendarFilters
-            clients={Array.from(new Set(tasks.map(task => task.client)))}
+            clients={Array.from(new Set(
+              calendarTasks
+                .map(task =>
+                  typeof task.client === 'string'
+                    ? task.client
+                    : task.client?.name || ''
+                )
+                .filter(name => name !== '')
+            ))}
             filters={filters}
             onFilterChange={setFilters}
           />
@@ -141,7 +151,7 @@ export default function Calendar() {
         {view === 'month' && (
           <MonthView
             currentDate={currentDate}
-            tasks={tasks}
+            tasks={calendarTasks}
             onNewTask={handleNewTask}
             onEditTask={handleEditTask}
             onContextMenu={handleContextMenu}
@@ -151,7 +161,7 @@ export default function Calendar() {
         {view === 'week' && (
           <WeekView
             currentDate={currentDate}
-            tasks={tasks}
+            tasks={calendarTasks}
             onNewTask={handleNewTask}
             onEditTask={handleEditTask}
             onContextMenu={handleContextMenu}
@@ -161,7 +171,7 @@ export default function Calendar() {
         {view === 'day' && (
           <DayView
             currentDate={currentDate}
-            tasks={tasks}
+            tasks={calendarTasks}
             onNewTask={handleNewTask}
             onEditTask={handleEditTask}
             onContextMenu={handleContextMenu}

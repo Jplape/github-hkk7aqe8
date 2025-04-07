@@ -31,6 +31,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <button
             onClick={onClose}
             className="p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100"
+            aria-label="Fermer le menu"
           >
             <X className="h-6 w-6" />
           </button>

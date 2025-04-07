@@ -1,7 +1,8 @@
+import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Clock, AlertCircle, User, MapPin } from 'lucide-react';
-import { Task } from '../../store/taskStore';
+import type { Task } from '../../types/task';
 import { useTeamStore } from '../../store/teamStore';
 
 interface TaskCardProps {
@@ -48,27 +49,30 @@ export default function TaskCard({
     switch (priority) {
       case 'high':
         return {
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          text: 'text-red-700',
-          hover: 'hover:bg-red-100',
-          dot: 'bg-red-500'
+          bg: 'bg-red-100',
+          border: 'border-red-300 border-2',
+          text: 'text-red-900 font-semibold',
+          hover: 'hover:bg-red-200',
+          dot: 'bg-red-600',
+          shadow: 'shadow-md shadow-red-200/50'
         };
       case 'medium':
         return {
-          bg: 'bg-orange-50',
-          border: 'border-orange-200',
-          text: 'text-orange-700',
-          hover: 'hover:bg-orange-100',
-          dot: 'bg-orange-500'
+          bg: 'bg-orange-100',
+          border: 'border-orange-300 border-2',
+          text: 'text-orange-900 font-semibold',
+          hover: 'hover:bg-orange-200',
+          dot: 'bg-orange-600',
+          shadow: 'shadow-md shadow-orange-200/50'
         };
       default:
         return {
-          bg: 'bg-green-50',
-          border: 'border-green-200',
-          text: 'text-green-700',
-          hover: 'hover:bg-green-100',
-          dot: 'bg-green-500'
+          bg: 'bg-green-100',
+          border: 'border-green-300 border-2',
+          text: 'text-green-900 font-semibold',
+          hover: 'hover:bg-green-200',
+          dot: 'bg-green-600',
+          shadow: 'shadow-md shadow-green-200/50'
         };
     }
   };
@@ -78,11 +82,11 @@ export default function TaskCard({
   const getStatusBadgeStyle = (status: Task['status']) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-200 text-green-900 font-medium border border-green-300 shadow-sm';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-200 text-blue-900 font-medium border border-blue-300 shadow-sm';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-200 text-gray-900 font-medium border border-gray-300 shadow-sm';
     }
   };
 
@@ -102,11 +106,14 @@ export default function TaskCard({
         onContextMenu(e, task);
       }}
       className={`
-        group relative rounded-lg border cursor-move transition-all duration-200
-        ${priorityStyles.bg} ${priorityStyles.border} ${priorityStyles.hover}
-        ${isDragging ? 'ring-2 ring-indigo-500 shadow-lg z-50' : 'hover:shadow-md'}
+        group relative rounded-lg cursor-move transition-all duration-200
+        ${priorityStyles.bg} ${priorityStyles.border} ${priorityStyles.hover} ${priorityStyles.shadow}
+        ${isDragging ? 'ring-2 ring-indigo-500 shadow-lg z-50 scale-105' : 'hover:shadow-lg'}
         ${compact ? 'p-2' : 'p-3'}
         h-full overflow-hidden flex flex-col
+        transform-gpu will-change-transform
+        ${task._status === 'error' ? 'animate-pulse ring-2 ring-red-500' : ''}
+        ${task._status === 'syncing' ? 'opacity-80' : ''}
       `}
     >
       <div className="flex items-start justify-between mb-1">
@@ -121,7 +128,7 @@ export default function TaskCard({
       <div className={`flex flex-col ${compact ? 'gap-0.5' : 'gap-1'} flex-1`}>
         <div className="flex items-center text-xs text-gray-600">
           <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
-          <span>{task.startTime}</span>
+          <span>{task.time.start}</span>
         </div>
 
         {!compact && assignedTechnician && (
@@ -134,7 +141,9 @@ export default function TaskCard({
         {!compact && (
           <div className="flex items-center text-xs text-gray-600">
             <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-            <span className="truncate">{task.client}</span>
+            <span className="truncate">
+              {typeof task.client === 'string' ? task.client : task.client?.name}
+            </span>
           </div>
         )}
 

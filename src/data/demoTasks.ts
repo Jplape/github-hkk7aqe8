@@ -73,20 +73,29 @@ export function generateDemoTasks(): Task[] {
         Math.random() < 0.5 ? 'medium' : 
         'low';
 
+      const endHour = hour + 2; // 2h duration
+      const endTime = `${endHour.toString().padStart(2, '0')}:00`;
+      
       tasks.push({
+        type: 'intervention',
         id: `task-${taskId++}`,
         title: `${maintenanceType} - ${equipment.name}`,
-        client,
+        client: { id: '', name: client },
         date,
-        startTime,
+        time: {
+          start: startTime,
+          end: endTime
+        },
         duration: 120, // 2 heures par défaut
         technicianId,
         status,
         priority,
-        equipment: equipment.name,
-        brand: equipment.brand,
-        model: equipment.model,
-        serialNumber: `${equipment.serial}-${(taskId).toString().padStart(3, '0')}`,
+        equipment: {
+          name: equipment.name,
+          brand: equipment.brand,
+          model: equipment.model,
+          serialNumber: `${equipment.serial}-${(taskId).toString().padStart(3, '0')}`
+        },
         description: `${maintenanceType} programmée pour ${equipment.name} ${equipment.model}`,
         createdAt: subDays(new Date(), 30).toISOString(),
         updatedAt: new Date().toISOString()

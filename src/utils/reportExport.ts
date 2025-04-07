@@ -1,7 +1,8 @@
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
+// Locale import available but not currently used
+// import { fr } from 'date-fns/locale';
+import ExcelJS from 'exceljs';
 import type { InterventionReport } from '../store/reportStore';
 
 export function generatePDF(report: InterventionReport): Blob {
@@ -33,7 +34,7 @@ export function generatePDF(report: InterventionReport): Blob {
   // Report details
   doc.setFontSize(10);
   doc.text(`N° Rapport: ${report.id}`, margin, y);
-  doc.text(`Date: ${format(new Date(report.date), 'dd MMMM yyyy', { locale: fr })}`, pageWidth - 80, y);
+  doc.text(`Date: ${format(new Date(report.date), 'dd MMMM yyyy')}`, pageWidth - 80, y);
   y += 15;
 
   // Client information
@@ -93,7 +94,7 @@ export function generatePDF(report: InterventionReport): Blob {
     y += 10;
     doc.setFontSize(10);
     doc.text(
-      `Prochaine maintenance prévue: ${format(new Date(report.nextMaintenanceDate), 'dd MMMM yyyy', { locale: fr })}`,
+      `Prochaine maintenance prévue: ${format(new Date(report.nextMaintenanceDate), 'dd MMMM yyyy')}`,
       margin,
       y
     );
@@ -108,47 +109,57 @@ export function generatePDF(report: InterventionReport): Blob {
   return doc.output('blob');
 }
 
-export function generateExcel(reports: InterventionReport[]): Blob {
-  const workbook = XLSX.utils.book_new();
+export async function generateExcel(reports: InterventionReport[]): Promise<Blob> {
+  const workbook = new ExcelJS.Workbook();
   
-  // Prepare data for the main sheet
-  const mainData = reports.map(report => ({
-    'N° Rapport': report.id,
-    'Date': format(new Date(report.date), 'dd/MM/yyyy'),
-    'Client': report.clientName,
-    'Équipement': report.equipmentType,
-    'Marque': report.brand,
-    'N° Série': report.serialNumber,
-    'Description': report.description,
-    'Statut': report.status,
-    'Prochaine Maintenance': report.nextMaintenanceDate ? 
-      format(new Date(report.nextMaintenanceDate), 'dd/MM/yyyy') : 'N/A'
-  }));
+  // Main sheet
+  const mainSheet = workbook.addWorksheet('Rapports');
+  mainSheet.columns = [
+    { header: 'N° Rapport', key: 'id', width: 15 },
+    { header: 'Date', key: 'date', width: 15 },
+    { header: 'Client', key: 'clientName', width: 25 },
+    { header: 'Équipement', key: 'equipmentType', width: 20 },
+    { header: 'Marque', key: 'brand', width: 15 },
+    { header: 'N° Série', key: 'serialNumber', width: 15 },
+    { header: 'Description', key: 'description', width: 40 },
+    { header: 'Statut', key: 'status', width: 15 },
+    { header: 'Prochaine Maintenance', key: 'nextMaintenanceDate', width: 20 }
+  ];
 
-  // Create the main worksheet
-  const mainWs = XLSX.utils.json_to_sheet(mainData);
-  XLSX.utils.book_append_sheet(workbook, mainWs, 'Rapports');
+  reports.forEach(report => {
+    mainSheet.addRow({
+      id: report.id,
+      date: format(new Date(report.date), 'dd/MM/yyyy'),
+      clientName: report.clientName,
+      equipmentType: report.equipmentType,
+      brand: report.brand,
+      serialNumber: report.serialNumber,
+      description: report.description,
+      status: report.status,
+      nextMaintenanceDate: report.nextMaintenanceDate ? 
+        format(new Date(report.nextMaintenanceDate), 'dd/MM/yyyy') : 'N/A'
+    });
+  });
 
-  // Create a sheet for findings and recommendations
-  const detailsData = reports.map(report => ({
-    'N° Rapport': report.id,
-    'Date': format(new Date(report.date), 'dd/MM/yyyy'),
-    'Actions Réalisées': report.findings.join('\n'),
-    'Recommandations': report.recommendations.join('\n')
-  }));
+  // Details sheet
+  const detailsSheet = workbook.addWorksheet('Détails');
+  detailsSheet.columns = [
+    { header: 'N° Rapport', key: 'id', width: 15 },
+    { header: 'Date', key: 'date', width: 15 },
+    { header: 'Actions Réalisées', key: 'findings', width: 40 },
+    { header: 'Recommandations', key: 'recommendations', width: 40 }
+  ];
 
-  const detailsWs = XLSX.utils.json_to_sheet(detailsData);
-  XLSX.utils.book_append_sheet(workbook, detailsWs, 'Détails');
+  reports.forEach(report => {
+    detailsSheet.addRow({
+      id: report.id,
+      date: format(new Date(report.date), 'dd/MM/yyyy'),
+      findings: report.findings.join('\n'),
+      recommendations: report.recommendations.join('\n')
+    });
+  });
 
   // Generate the file
-  const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
-  
-  // Convert to Blob
-  const buf = new ArrayBuffer(wbout.length);
-  const view = new Uint8Array(buf);
-  for (let i = 0; i < wbout.length; i++) {
-    view[i] = wbout.charCodeAt(i) & 0xFF;
-  }
-  
-  return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }

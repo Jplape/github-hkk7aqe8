@@ -1,7 +1,7 @@
 import { format, startOfWeek, addDays, isSameMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, ChevronDown } from 'lucide-react';
-import { Task } from '../../store/taskStore';
+import { Plus } from 'lucide-react';
+import { Task } from '../../types/task';
 import { DroppableDay } from './DroppableDay';
 import TaskCard from './TaskCard';
 
@@ -93,7 +93,7 @@ export default function MonthView({
                   </div>
 
                   <div className="space-y-1">
-                    {day.tasks.slice(0, 3).map(task => (
+                    {day.tasks.map(task => (
                       <TaskCard
                         key={task.id}
                         task={task}
@@ -112,6 +112,7 @@ export default function MonthView({
                   <button
                     onClick={() => onNewTask(day.dateStr)}
                     className="w-full mt-2 text-xs text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded p-1 transition-colors"
+                    aria-label={`Ajouter une tâche pour le ${format(day.date, 'd MMMM yyyy', { locale: fr })}`}
                   >
                     <Plus className="h-3 w-3 mx-auto" />
                   </button>

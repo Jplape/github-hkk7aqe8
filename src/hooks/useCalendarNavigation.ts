@@ -1,56 +1,40 @@
-import { useState, useCallback } from 'react';
-import { addDays, addMonths, subMonths, subDays, startOfWeek, endOfWeek } from 'date-fns';
+import { useCallback } from 'react';
+import { addDays, addMonths, subMonths, subDays } from 'date-fns';
+import { useCalendarStore } from '../store/calendarStore';
 
-export function useCalendarNavigation(initialDate = new Date()) {
-  const [currentDate, setCurrentDate] = useState(initialDate);
-  const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+export function useCalendarNavigation() {
+  const { currentDate, view, setCurrentDate, setView, getVisibleDateRange } = useCalendarStore();
 
   const navigate = useCallback((direction: 'prev' | 'next') => {
-    setCurrentDate(currentDate => {
-      switch (view) {
-        case 'month':
-          return direction === 'prev' 
-            ? subMonths(currentDate, 1)
-            : addMonths(currentDate, 1);
-        case 'week':
-          return direction === 'prev'
-            ? subDays(currentDate, 7)
-            : addDays(currentDate, 7);
-        case 'day':
-          return direction === 'prev'
-            ? subDays(currentDate, 1)
-            : addDays(currentDate, 1);
-        default:
-          return currentDate;
-      }
-    });
-  }, [view]);
-
-  const getVisibleRange = useCallback(() => {
+    const currentDate = useCalendarStore.getState().currentDate;
+    let newDate = currentDate;
+    
     switch (view) {
       case 'month':
-        return {
-          start: startOfWeek(currentDate, { weekStartsOn: 1 }),
-          end: endOfWeek(addMonths(currentDate, 1), { weekStartsOn: 1 })
-        };
+        newDate = direction === 'prev'
+          ? subMonths(currentDate, 1)
+          : addMonths(currentDate, 1);
+        break;
       case 'week':
-        return {
-          start: startOfWeek(currentDate, { weekStartsOn: 1 }),
-          end: endOfWeek(currentDate, { weekStartsOn: 1 })
-        };
+        newDate = direction === 'prev'
+          ? subDays(currentDate, 7)
+          : addDays(currentDate, 7);
+        break;
       case 'day':
-        return {
-          start: currentDate,
-          end: currentDate
-        };
+        newDate = direction === 'prev'
+          ? subDays(currentDate, 1)
+          : addDays(currentDate, 1);
+        break;
     }
-  }, [currentDate, view]);
+    
+    setCurrentDate(newDate);
+  }, [view, setCurrentDate]);
 
   return {
     currentDate,
     view,
     setView,
     navigate,
-    getVisibleRange
+    getVisibleRange: getVisibleDateRange
   };
 }

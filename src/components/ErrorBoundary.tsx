@@ -33,6 +33,11 @@ export default class ErrorBoundary extends Component<Props, State> {
               <AlertTriangle className="h-6 w-6" />
               <h2 className="text-lg font-medium">Une erreur est survenue</h2>
             </div>
+            {this.state.error && (
+              <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
+                <p>Erreur technique : {this.state.error.message}</p>
+              </div>
+            )}
             <p className="text-gray-600 mb-4">
               Nous nous excusons pour la gêne occasionnée. Veuillez rafraîchir la page ou réessayer plus tard.
             </p>
