@@ -317,15 +317,20 @@ export default function Tasks() {
                     {format(new Date(task.date), 'dd MMMM yyyy', { locale: fr })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {task.status === 'completed' ? 'Terminée' :
-                       task.status === 'in_progress' ? 'En cours' :
-                       'En attente'}
-                    </span>
+                    <div className="flex items-center space-x-1">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {task.status === 'completed' ? 'Terminée' :
+                         task.status === 'in_progress' ? 'En cours' :
+                         'En attente'}
+                      </span>
+                      {task._status === 'syncing' && (
+                        <span className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" title="Synchronisation en cours"/>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {typeof task.technicianId === 'string' ? task.technicianId : task.technicianId?.name || 'Non assigné'}

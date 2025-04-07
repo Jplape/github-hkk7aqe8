@@ -59,12 +59,22 @@ export function useTaskSync() {
                 case 'UPDATE':
                   const localTask = tasks.find(t => t.id === p.new?.id);
                   if (localTask && p.new) {
-                    const resolvedTask = resolveConflict(localTask, p.new);
-                    updateTask(resolvedTask.id, {
-                      ...resolvedTask,
-                      origin: 'remote',
-                      _status: 'synced'
-                    });
+                    // Optimized status update handling
+                    if (p.new.status && p.new.status !== localTask.status) {
+                      updateTask(localTask.id, {
+                        status: p.new.status,
+                        updatedAt: p.new.updatedAt,
+                        origin: 'remote',
+                        _status: 'synced'
+                      });
+                    } else {
+                      const resolvedTask = resolveConflict(localTask, p.new);
+                      updateTask(resolvedTask.id, {
+                        ...resolvedTask,
+                        origin: 'remote',
+                        _status: 'synced'
+                      });
+                    }
                   }
                   break;
                 case 'DELETE':

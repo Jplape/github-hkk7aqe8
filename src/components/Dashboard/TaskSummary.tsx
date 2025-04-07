@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Task } from '../../types/task';
 import { format, parseISO, isValid } from 'date-fns';
+import StatusDropdown from '../Tasks/StatusDropdown';
 import { fr } from 'date-fns/locale';
 import { Clock, MapPin, User } from 'lucide-react';
 
@@ -13,7 +14,10 @@ export default function TaskSummary({ tasks, onTaskClick }: TaskSummaryProps) {
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
 
   const filteredTasks = tasks
-    .filter(task => selectedStatus === 'all' ? true : task.status === selectedStatus)
+    .filter(task => {
+      console.log('Task status:', task.id, task.status);
+      return selectedStatus === 'all' ? true : task.status === selectedStatus;
+    })
     .filter(task => task.date && isValid(parseISO(task.date)))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -29,27 +33,6 @@ export default function TaskSummary({ tasks, onTaskClick }: TaskSummaryProps) {
     }
   };
 
-  const getStatusStyle = (status: Task['status']) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusLabel = (status: Task['status']) => {
-    switch (status) {
-      case 'completed':
-        return 'Terminée';
-      case 'in_progress':
-        return 'En cours';
-      default:
-        return 'En attente';
-    }
-  };
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -105,9 +88,10 @@ export default function TaskSummary({ tasks, onTaskClick }: TaskSummaryProps) {
             >
               <div className="flex justify-between items-start">
                 <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
-                <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(task.status)}`}>
-                  {getStatusLabel(task.status)}
-                </span>
+                <StatusDropdown
+                  task={task}
+                  className="text-xs px-2 py-1"
+                />
               </div>
               
               <div className="mt-2 space-y-1">
