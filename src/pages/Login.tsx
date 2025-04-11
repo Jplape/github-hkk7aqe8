@@ -2,22 +2,41 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wrench } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { supabase } from '../lib/supabase';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const setUser = useAuthStore((state) => state.setUser);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { setUser, setLoading: setAuthLoading } = useAuthStore();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'admin@esttmco.com' && password === 'admin') {
-      setUser({ email, id: '1' });
-      navigate('/');
-    } else {
-      setError('Email ou mot de passe incorrect');
+    setError('');
+    
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (authError) {
+        throw authError;
+      }
+      
+      if (data?.user) {
+        setUser(data.user);
+        navigate('/');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Email ou mot de passe incorrect');
+    } finally {
+      setAuthLoading(false);
     }
+
   };
 
   return (

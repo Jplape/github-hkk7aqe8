@@ -115,17 +115,13 @@ export default function Calendar() {
         
         <div className="flex items-center space-x-4">
           <CalendarFilters
-            clients={Array.from(new Set(
-              calendarTasks
-                .map(task =>
-                  typeof task.client === 'string'
-                    ? task.client
-                    : task.client?.name || ''
-                )
-                .filter(name => name !== '')
-            ))}
+            clients={calendarTasks
+              .map(task => task.client_id)
+              .filter((id): id is string => id !== undefined)
+              .filter((id, index, self) => self.indexOf(id) === index)}
             filters={filters}
             onFilterChange={setFilters}
+            clientNames={{}}
           />
           
           <button

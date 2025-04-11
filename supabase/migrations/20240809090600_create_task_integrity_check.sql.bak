@@ -1,0 +1,47 @@
+-- Create integrity check function
+CREATE OR REPLACE FUNCTION check_task_integrity()
+RETURNS JSONB
+LANGUAGE SQL
+SECURITY DEFINER
+AS $$
+WITH missing_tasks AS (
+    SELECT
+        t.id AS task_id,
+        t.created_at,
+        DATE_TRUNC('hour', t.created_at) AS time_interval
+    FROM task t
+    WHERE NOT EXISTS (
+        SELECT 1 FROM task_aliases ta
+        WHERE ta.task_id = t.id
+    )
+),
+time_analysis AS (
+    SELECT
+        time_interval,
+        COUNT(task_id) AS count_per_interval,
+        ARRAY_AGG(task_id) AS task_ids
+    FROM missing_tasks
+    GROUP BY time_interval
+)
+SELECT
+    jsonb_build_object(
+        'missing_count', (SELECT COUNT(task_id) FROM missing_tasks),
+        'missing_ids', (SELECT ARRAY_AGG(task_id) FROM missing_tasks),
+        'time_analysis', jsonb_agg(
+            jsonb_build_object(
+                'interval', time_interval,
+                'count', count_per_interval,
+                'sample_ids', task_ids[1:5]
+            )
+        )
+    ) AS result
+FROM time_analysis
+$$;
+
+-- Create required indexes
+CREATE INDEX IF NOT EXISTS idx_task_created_at ON task(created_at);
+CREATE INDEX IF NOT EXISTS idx_task_aliases_task_id ON task_aliases(task_id);
+
+-- Add RLS policy for function access
+CREATE POLICY "Allow integrity check for admins"
+ON task FOR SELECT USING (auth.role() = 'admin');

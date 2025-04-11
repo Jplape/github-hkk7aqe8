@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { supabase } from '../lib/supabase';
+
 
 interface User {
   id: string;
@@ -28,14 +30,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     console.log('Setting loading:', loading);
     set({ loading });
   },
-  logout: () => {
+  logout: async () => {
     console.log('Logging out');
-    localStorage.removeItem('auth');
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error('Logout error:', error);
     set({ user: null, loading: false });
   },
-  initialize: () => {
+  initialize: async () => {
     console.log('Initializing auth store');
-    set({ user: null, loading: false });
+    set({ loading: true });
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    set({ user: session?.user ?? null, loading: false });
+    
+    supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event);
+      set({ user: session?.user ?? null });
+    });
   },
 }));
 

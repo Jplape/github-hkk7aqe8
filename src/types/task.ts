@@ -19,7 +19,7 @@ export interface TaskEquipment {
   serialNumber?: string;
 }
 
-export type TaskStatus = 'pending' | 'in_progress' | 'completed';
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskType = 'maintenance' | 'intervention';
 export type MaintenanceType = 'preventive' | 'corrective';
@@ -28,7 +28,7 @@ export type TaskOrigin = 'local' | 'remote';
 export interface BaseTask {
   id: string;
   title: string;
-  client: Client;
+  client_id?: string; // Référence optionnelle vers client.id
   date: string; // ISO date format (YYYY-MM-DD)
   time: TimeRange;
   duration: number; // in minutes

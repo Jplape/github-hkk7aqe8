@@ -1,120 +1,89 @@
-import { useEffect, useRef } from 'react';
-import { useTaskStore } from '../store/taskStore';
-import { useCalendarStore } from '../store/calendarStore';
-import { supabase } from '../../lib/supabase';
-import type { Task } from '../types/task';
-import { saveConflict } from '../services/ConflictHistoryDB';
+import { useEffect } from 'react'
+import { RealtimePostgresChangesPayload, RealtimePostgresInsertPayload, RealtimePostgresUpdatePayload } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
+import { useTaskStore } from '../store/taskStore'
+import { Database } from '../types/supabase'
+import { TaskStatus, TimeRange, TaskPriority } from '../types/task'
 
-export function useTaskSync() {
-  const { tasks, addTask, updateTask, deleteTask } = useTaskStore();
-  const { updateLastSync } = useCalendarStore();
-  const pendingSyncs = useRef<Set<string>>(new Set());
+type TaskChangePayload = RealtimePostgresChangesPayload<Database['public']['Tables']['tasks']['Row']>
+type TaskInsertPayload = RealtimePostgresInsertPayload<Database['public']['Tables']['tasks']['Row']>
+type TaskUpdatePayload = RealtimePostgresUpdatePayload<Database['public']['Tables']['tasks']['Row']>
 
-  const resolveConflict = (local: Task, remote: Task): Task => {
-    const localDate = new Date(local.updatedAt);
-    const remoteDate = new Date(remote.updatedAt);
-    
-    const resolved = remoteDate > localDate 
-      ? { ...local, ...remote }
-      : { ...remote, ...local };
-
-    saveConflict(local.id, local, remote, resolved);
-    return resolved;
-  };
+export const useTaskSync = () => {
+  const { updateTaskStatus, addTask } = useTaskStore()
 
   useEffect(() => {
-    let retryCount = 0;
-    const maxRetries = 3;
-    
-    const setupSubscription = () => {
-      const subscription = supabase
-        .channel('schema-db-changes')
-        .on(
-          'postgres_changes',
-          {
+    const setupChannel = async () => {
+      try {
+        const channel = supabase
+          .channel('realtime-tasks')
+          .on('postgres_changes', {
             event: '*',
             schema: 'public',
             table: 'tasks'
-          },
-          (payload) => {
-            const p = payload as unknown as {
-              new?: Task;
-              old?: Task;
-              eventType: string
-            };
+          }, (payload: TaskChangePayload) => {
+            const changeType = payload.eventType
             
-            if (!p.new) return;
-            const taskId = p.new.id;
-            if (!taskId || pendingSyncs.current.has(taskId)) return;
+            console.log('Supabase change event:', changeType, payload.new)
+            
+            if (changeType === 'INSERT') {
+              const insertPayload = payload as TaskInsertPayload
+              if (insertPayload.new) {
+                // Convertir les données Supabase vers le format Task
+                const defaultClient = {
+                  id: '',
+                  name: 'Client inconnu',
+                  email: '',
+                  phone: ''
+                }
 
-            try {
-              switch (p.eventType) {
-                case 'INSERT':
-                  addTask({
-                    ...p.new,
-                    origin: 'remote',
-                    _status: 'synced'
-                  });
-                  break;
-                case 'UPDATE':
-                  const localTask = tasks.find(t => t.id === p.new?.id);
-                  if (localTask && p.new) {
-                    // Optimized status update handling
-                    if (p.new.status && p.new.status !== localTask.status) {
-                      updateTask(localTask.id, {
-                        status: p.new.status,
-                        updatedAt: p.new.updatedAt,
-                        origin: 'remote',
-                        _status: 'synced'
-                      });
-                    } else {
-                      const resolvedTask = resolveConflict(localTask, p.new);
-                      updateTask(resolvedTask.id, {
-                        ...resolvedTask,
-                        origin: 'remote',
-                        _status: 'synced'
-                      });
-                    }
-                  }
-                  break;
-                case 'DELETE':
-                  if (p.old) {
-                    deleteTask(p.old.id);
-                  }
-                  break;
+                const taskData = {
+                  title: insertPayload.new.title,
+                  description: insertPayload.new.description || '',
+                  status: insertPayload.new.status as TaskStatus,
+                  client: defaultClient,
+                  date: insertPayload.new.due_date ? new Date(insertPayload.new.due_date).toISOString() : '',
+                  time: { start: '09:00', end: '17:00' } as TimeRange,
+                  duration: 0,
+                  priority: 'medium' as TaskPriority
+                }
+                addTask(taskData)
               }
-              updateLastSync();
-              retryCount = 0; // Reset retry counter on success
-            } catch (error) {
-              console.error('Sync error:', error);
-              if (retryCount < maxRetries) {
-                retryCount++;
-                setTimeout(setupSubscription, 1000 * retryCount);
+            } else if (changeType === 'UPDATE') {
+              const updatePayload = payload as TaskUpdatePayload
+              if (updatePayload.new?.status && updatePayload.new?.id &&
+                  updatePayload.new.status !== updatePayload.old?.status) {
+                // Valider que le status est bien un TaskStatus valide
+                updateTaskStatus(
+                  updatePayload.new.id,
+                  (['pending', 'in_progress', 'completed'] as TaskStatus[]).includes(updatePayload.new.status as TaskStatus)
+                    ? updatePayload.new.status as TaskStatus
+                    : 'pending'
+                )
               }
             }
-          }
-        )
-        .subscribe((_, err) => {
-          if (err) {
-            console.error('Subscription error:', err);
-            if (retryCount < maxRetries) {
-              retryCount++;
-              setTimeout(setupSubscription, 1000 * retryCount);
+          })
+          .subscribe((_status, err) => {
+            if (err) {
+              console.error('Subscription error:', err)
+              // Réessayer après 5 secondes
+              setTimeout(setupChannel, 5000)
             }
-          }
-        });
+          })
 
-      return subscription;
-    };
-
-    const subscription = setupSubscription();
-
-    return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
+        return () => {
+          supabase.removeChannel(channel)
+        }
+      } catch (error) {
+        console.error('Failed to setup sync channel:', error)
+        // Réessayer après 5 secondes
+        setTimeout(setupChannel, 5000)
       }
-    };
-  }, [addTask, updateTask, deleteTask, updateLastSync, tasks]);
+    }
 
-  return null;
+    const cleanup = setupChannel()
+    return () => {
+      cleanup.then(fn => fn?.())
+    }
+  }, [updateTaskStatus, addTask])
 }

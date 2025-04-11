@@ -24,7 +24,7 @@ interface ClientCardProps {
 export default function ClientCard({ client }: ClientCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { tasks } = useTaskStore();
-  const clientTasks = tasks.filter(task => task.client === client.name);
+  const clientTasks = tasks.filter(task => task.client_id === client.id.toString());
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -109,7 +109,7 @@ export default function ClientCard({ client }: ClientCardProps) {
                     <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
                       <div className="flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
-                        {format(new Date(task.date), 'dd MMMM yyyy', { locale: fr })} à {task.startTime}
+                        {format(new Date(task.date), 'dd MMMM yyyy', { locale: fr })} à {task.time.start}
                       </div>
                     </div>
                   </Link>

@@ -2,15 +2,16 @@ import { Filter, X } from 'lucide-react';
 import { useTeamStore } from '../../store/teamStore';
 
 interface CalendarFiltersProps {
-  clients: string[];
+  clients: string[]; // Array of client IDs
   filters: {
     technician: string;
     client: string;
   };
   onFilterChange: (filters: { technician: string; client: string }) => void;
+  clientNames?: Record<string, string>; // Optional mapping of client IDs to names
 }
 
-export default function CalendarFilters({ clients, filters, onFilterChange }: CalendarFiltersProps) {
+export default function CalendarFilters({ clients, filters, onFilterChange, clientNames = {} }: CalendarFiltersProps) {
   const { members } = useTeamStore();
   const hasActiveFilters = filters.technician !== 'all' || filters.client !== 'all';
 
@@ -46,9 +47,9 @@ export default function CalendarFilters({ clients, filters, onFilterChange }: Ca
         aria-label="Filtrer par client"
       >
         <option value="all">Tous les clients</option>
-        {clients.map((client) => (
-          <option key={client} value={client}>
-            {client}
+        {clients.map((clientId) => (
+          <option key={clientId} value={clientId}>
+            {clientNames?.[clientId] || clientId}
           </option>
         ))}
       </select>

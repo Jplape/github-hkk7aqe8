@@ -1,4 +1,13 @@
--- Core Tables
+-- Tables de base sans dépendances
+CREATE TABLE client (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    address TEXT NOT NULL,
+    contact_info JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE equipment (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     serial_number TEXT NOT NULL UNIQUE,
@@ -20,6 +29,18 @@ CREATE TABLE maintenance_contract (
     CONSTRAINT unique_equipment_contract UNIQUE (equipment_id, start_date)
 );
 
+CREATE TABLE intervention (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_id UUID NOT NULL REFERENCES client(id) ON DELETE CASCADE,
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL CHECK (end_time > start_time),
+    status TEXT NOT NULL CHECK (status IN ('planned', 'in_progress', 'completed', 'cancelled')),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT valid_intervention_duration CHECK (end_time - start_time <= interval '24 hours')
+);
+
 CREATE TABLE maintenance_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     equipment_id UUID REFERENCES equipment(id) ON DELETE CASCADE,
@@ -34,7 +55,7 @@ CREATE TABLE task (
     equipment_id UUID REFERENCES equipment(id) ON DELETE CASCADE,
     intervention_id UUID REFERENCES intervention(id) ON DELETE CASCADE,
     description TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('pending', 'in_progress', 'completed')),
+    status TEXT NOT NULL CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),
     priority TEXT NOT NULL CHECK (priority IN ('low', 'medium', 'high')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -131,6 +152,16 @@ ALTER TABLE equipment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE maintenance_contract ENABLE ROW LEVEL SECURITY;
 ALTER TABLE maintenance_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for task
+CREATE POLICY "Enable read access for all users"
+ON task FOR SELECT USING (true);
+
+CREATE POLICY "Enable update for authenticated users"
+ON task FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Enable insert for authenticated users"
+ON task FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 ALTER TABLE chat_user ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_conversation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_message ENABLE ROW LEVEL SECURITY;
@@ -175,6 +206,9 @@ FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 CREATE TRIGGER update_user_timestamp
 BEFORE UPDATE ON "user"
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+-- Realtime Publication
+CREATE PUBLICATION supabase_realtime FOR TABLE task WITH (publish = 'insert,update,delete');
 
 -- Full-text Search
 ALTER TABLE chat_message ADD COLUMN search_vector tsvector;

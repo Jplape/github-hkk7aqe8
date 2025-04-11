@@ -16,9 +16,10 @@ import InterventionReports from './pages/InterventionReports';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
-import { MockAuthProvider } from './components/MockAuthProvider';
 import { useAuthStore } from './store/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useTaskSubscription } from './hooks/useTaskSubscription';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,13 +33,13 @@ const queryClient = new QueryClient({
 export default function App() {
   const user = useAuthStore((state) => state.user);
   useSyncReports(); // Initialize reports sync with Firestore
+  useTaskSubscription(); // Initialize realtime task updates
 
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <MockAuthProvider>
-          <>
-            <Toaster
+        <>
+          <Toaster
               position="top-right"
               toastOptions={{
                 duration: 3000,
@@ -80,8 +81,7 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
-          </>
-        </MockAuthProvider>
+        </>
       </ErrorBoundary>
     </QueryClientProvider>
   );

@@ -10,12 +10,31 @@ interface TaskState {
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => void;
   moveTask: (taskId: string, newDate: string) => Promise<void>;
+  initRealtime: () => () => void;
 }
 
 export const useTaskStore = create<TaskState>()(
   persist(
     (set) => ({
       tasks: [],
+      initRealtime: () => {
+        const subscription = supabase
+          .channel('tasks_changes')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'tasks'
+          }, (payload) => {
+            if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+              useTaskStore.getState().updateTask(payload.new.id, payload.new as Partial<Task>);
+            }
+          })
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(subscription);
+        };
+      },
 
       addTask: async (task) => {
         const now = new Date().toISOString();
@@ -65,6 +84,15 @@ export const useTaskStore = create<TaskState>()(
       updateTask: async (id: string, updates: Partial<Task>) => {
         const now = new Date().toISOString();
         
+        // Optimistic update
+        set((state) => ({
+          tasks: state.tasks.map((task) =>
+            task.id === id
+              ? { ...task, ...updates, updatedAt: now, _status: 'syncing' } as Task
+              : task
+          )
+        }));
+
         try {
           const { error } = await supabase
             .from('tasks')
@@ -73,15 +101,29 @@ export const useTaskStore = create<TaskState>()(
 
           if (error) throw error;
 
+          // Update status on success
           set((state) => ({
             tasks: state.tasks.map((task) =>
               task.id === id
-                ? { ...task, ...updates, updatedAt: now } as Task
+                ? { ...task, ...updates, updatedAt: now, _status: 'synced' } as Task
                 : task
             )
           }));
         } catch (error) {
-          console.error('Failed to update task:', error);
+          console.error('Failed to update task:', {
+            error,
+            taskId: id,
+            updates
+          });
+          
+          // Mark as error and queue for retry
+          set((state) => ({
+            tasks: state.tasks.map((task) =>
+              task.id === id
+                ? { ...task, _status: 'error' } as Task
+                : task
+            )
+          }));
         }
 
         useCalendarStore.getState().updateLastSync(); 

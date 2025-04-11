@@ -13,14 +13,23 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          data: {
+            full_name: name
+          }
+        }
       });
+      
       if (error) throw error;
-      navigate('/');
-    } catch (err) {
-      setError('Une erreur est survenue lors de l\'inscription');
+      
+      if (data.user) {
+        navigate('/login');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'inscription');
     }
   };
 
