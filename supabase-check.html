@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Supabase Tables Check</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Supabase Tables Check</h1>
+  <div id="result"></div>
+
+  <script>
+    const supabaseUrl = 'https://svjehgfaeqbixwcikvly.supabase.co'
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2amVoZ2ZhZXFiaXh3Y2lrdmx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5MTE3MDIsImV4cCI6MjA1MTQ4NzcwMn0.pZXxo8MG9-SXOgz5TiyVnNV_bTM3yApsSB6HzTsB_pw'
+    
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey)
+
+    async function checkTables() {
+      try {
+        const { data, error } = await supabase
+          .from('pg_tables')
+          .select('tablename')
+          .eq('schemaname', 'public')
+        
+        if (error) throw error
+        
+        document.getElementById('result').innerHTML = `
+          <h2>Tables in public schema:</h2>
+          <ul>
+            ${data.map(table => `<li>${table.tablename}</li>`).join('')}
+          </ul>
+        `
+      } catch (err) {
+        document.getElementById('result').innerHTML = `
+          <p style="color: red">Error: ${err.message}</p>
+        `
+      }
+    }
+
+    checkTables()
+  </script>
+</body>
+</html>
