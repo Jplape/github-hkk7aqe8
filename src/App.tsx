@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
+
 import useSyncReports from './hooks/useSyncReports';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -9,6 +10,7 @@ import Teams from './pages/Teams';
 import Clients from './pages/Clients';
 import Equipment from './pages/Equipment';
 import Tasks from './pages/Tasks';
+import TestTaskPage from './pages/TestTaskPage';
 import Statistics from './pages/Statistics';
 import Chatbot from './pages/Chatbot';
 import Settings from './pages/Settings';
@@ -18,7 +20,29 @@ import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuthStore } from './store/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
+import { SyncStatus } from './components/SyncStatus';
 import { useTaskSubscription } from './hooks/useTaskSubscription';
+
+// Block extension errors and messages
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => {
+    if (e.message.includes('sliderBarShow')) {
+      e.preventDefault();
+    }
+  });
+
+  if (navigator.userAgent.includes('Chrome')) {
+    const originalLog = console.log;
+    console.log = function(message?: any, ...optionalParams: any[]) {
+      if (typeof message === 'string' &&
+          !message.includes('content api') &&
+          !message.includes('isOpened') &&
+          !message.includes('is_settings_open')) {
+        originalLog(message, ...optionalParams);
+      }
+    };
+  }
+}
 
 
 const queryClient = new QueryClient({
@@ -66,6 +90,7 @@ export default function App() {
             <Routes>
               <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
               <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
+              <Route path="/test-task-sync" element={<TestTaskPage />} />
               
               <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
@@ -82,6 +107,7 @@ export default function App() {
               </Route>
             </Routes>
         </>
+        <SyncStatus />
       </ErrorBoundary>
     </QueryClientProvider>
   );

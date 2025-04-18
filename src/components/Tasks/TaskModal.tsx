@@ -1,12 +1,28 @@
 import { X } from 'lucide-react';
-import { Task } from '../../store/taskStore';
+import { Task } from '../../types/task';
 import TaskForm from './TaskForm';
+import type { TaskFormData } from './TaskForm';
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: Partial<Task>) => void;
   taskToEdit?: Task | null;
+}
+
+function convertTaskToFormData(task?: Task | null): TaskFormData | undefined {
+  if (!task) return undefined;
+  
+  return {
+    ...task,
+    startTime: task.time?.start || '09:00',
+    endTime: task.time?.end || '10:00',
+    client: task.client_id || '',
+    equipmentName: task.equipment?.name || '',
+    brand: task.equipment?.brand || '',
+    model: task.equipment?.model || '',
+    serialNumber: task.equipment?.serialNumber || ''
+  };
 }
 
 export default function TaskModal({ isOpen, onClose, onSubmit, taskToEdit }: TaskModalProps) {
@@ -19,13 +35,13 @@ export default function TaskModal({ isOpen, onClose, onSubmit, taskToEdit }: Tas
           <h3 className="text-lg font-medium text-gray-900">
             {taskToEdit ? 'Modifier la tâche' : 'Nouvelle tâche'}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-500">
             <X className="h-6 w-6" />
           </button>
         </div>
 
         <TaskForm
-          initialData={taskToEdit || undefined}
+          initialData={convertTaskToFormData(taskToEdit)}
           onSubmit={onSubmit}
         />
       </div>

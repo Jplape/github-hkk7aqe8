@@ -19,7 +19,7 @@ export interface TaskEquipment {
   serialNumber?: string;
 }
 
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type TaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskType = 'maintenance' | 'intervention';
 export type MaintenanceType = 'preventive' | 'corrective';

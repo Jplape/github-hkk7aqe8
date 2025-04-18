@@ -45,7 +45,7 @@ export default function ClientCard({ client }: ClientCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="bg-gray-100 rounded-full p-3">
-              <Building2 className="h-6 w-6 text-gray-600" />
+              <Building2 className="h-6 w-6 text-gray-600" aria-hidden="true" />
             </div>
             <div>
               <h3 className="text-lg font-medium text-gray-900">
@@ -59,24 +59,26 @@ export default function ClientCard({ client }: ClientCardProps) {
             </div>
           </div>
           <button
+            type="button"
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label={isExpanded ? "Réduire les détails" : "Développer les détails"}
           >
             {isExpanded ? (
-              <ChevronUp className="h-5 w-5 text-gray-500" />
+              <ChevronUp className="h-5 w-5 text-gray-500" aria-hidden="true" />
             ) : (
-              <ChevronDown className="h-5 w-5 text-gray-500" />
+              <ChevronDown className="h-5 w-5 text-gray-500" aria-hidden="true" />
             )}
           </button>
         </div>
         
         <div className="mt-4 space-y-2">
           <div className="flex items-center text-sm text-gray-500">
-            <MapPin className="h-4 w-4 mr-2" />
+            <MapPin className="h-4 w-4 mr-2" aria-hidden="true" />
             {client.address}
           </div>
           <div className="flex items-center text-sm text-gray-500">
-            <Phone className="h-4 w-4 mr-2" />
+            <Phone className="h-4 w-4 mr-2" aria-hidden="true" />
             {client.phone}
           </div>
         </div>
@@ -103,12 +105,12 @@ export default function ClientCard({ client }: ClientCardProps) {
                           {task.status === 'completed' ? 'Terminée' :
                            task.status === 'in_progress' ? 'En cours' : 'En attente'}
                         </span>
-                        <ExternalLink className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ExternalLink className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                       </div>
                     </div>
                     <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
                       <div className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
+                        <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
                         {format(new Date(task.date), 'dd MMMM yyyy', { locale: fr })} à {task.time.start}
                       </div>
                     </div>
@@ -129,7 +131,7 @@ export default function ClientCard({ client }: ClientCardProps) {
                 to={`/intervention-reports?client=${client.id}`}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
-                <FileText className="h-4 w-4 mr-2" />
+                <FileText className="h-4 w-4 mr-2" aria-hidden="true" />
                 Consulter les rapports
               </Link>
             </div>

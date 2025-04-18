@@ -5,14 +5,26 @@ button:not([aria-label]) {
 
 /* Correction de compatibilité */
 html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%; /* Version standard */
+  -webkit-text-size-adjust: 100%; /* Safari, Chrome */
+  text-size-adjust: 100%; /* Standard */
+  -moz-font-size-adjust: 0.5; /* Firefox */
+  font-size-adjust: 0.5; /* Standard */
 }
 
 /* Styles pour les éléments focus */
 :focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
+}
+
+/* Styles pour les images sans texte alternatif */
+img:not([alt]) {
+  border: 2px dashed #f87171;
+}
+
+/* Styles pour les éléments avec aria-invalid */
+[aria-invalid="true"] {
+  border-color: #ef4444;
 }
 
 /* Masquage accessible */

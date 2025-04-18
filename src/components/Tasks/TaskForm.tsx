@@ -1,10 +1,20 @@
 import { useState } from 'react';
-import { Task } from '../../store/taskStore';
+import { Task } from '../../types/task';
 import { Clock, Info } from 'lucide-react';
 import { useTeamStore } from '../../store/teamStore';
 
+export interface TaskFormData extends Partial<Task> {
+  startTime: string;
+  endTime: string;
+  client: string;
+  equipmentName?: string;
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+}
+
 interface TaskFormProps {
-  initialData?: Partial<Task>;
+  initialData?: TaskFormData;
   onSubmit: (formData: Partial<Task>) => void;
   showMaintenanceFields?: boolean;
 }
@@ -18,7 +28,8 @@ const timeOptions = [
   '17:00', '17:15', '17:30', '17:45', '18:00'
 ];
 
-function calculateEndTime(startTime: string, duration: number): string {
+function calculateEndTime(startTime: string | undefined, duration: number): string {
+  if (!startTime) return '10:00';
   const [hours, minutes] = startTime.split(':').map(Number);
   const totalMinutes = hours * 60 + minutes + duration;
   const endHours = Math.floor(totalMinutes / 60);
@@ -26,7 +37,8 @@ function calculateEndTime(startTime: string, duration: number): string {
   return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
 }
 
-function calculateDuration(startTime: string, endTime: string): number {
+function calculateDuration(startTime: string | undefined, endTime: string | undefined): number {
+  if (!startTime || !endTime) return 60;
   const [startHours, startMinutes] = startTime.split(':').map(Number);
   const [endHours, endMinutes] = endTime.split(':').map(Number);
   return (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
@@ -34,20 +46,41 @@ function calculateDuration(startTime: string, endTime: string): number {
 
 function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: TaskFormProps) {
   const { members } = useTeamStore();
-  const [formData, setFormData] = useState(() => {
-    const defaultData = {
+
+  const prepareSubmitData = (formData: TaskFormData): Partial<Task> => {
+    const { startTime, endTime, equipmentName, brand, model, serialNumber, ...rest } = formData;
+    
+    return {
+      ...rest,
+      time: startTime && endTime ? {
+        start: startTime,
+        end: endTime
+      } : undefined,
+      equipment: equipmentName || brand || model || serialNumber ? {
+        name: equipmentName,
+        brand,
+        model,
+        serialNumber
+      } : undefined
+    };
+  };
+  const [formData, setFormData] = useState<TaskFormData>(() => {
+    const defaultData: TaskFormData = {
       title: '',
       description: '',
       client: '',
-      equipment: '',
+      equipment: undefined,
+      equipmentName: '',
       brand: '',
       model: '',
       serialNumber: '',
       date: new Date().toISOString().split('T')[0],
-      startTime: '09:00',
-      endTime: '10:00',
-      priority: 'medium' as Task['priority'],
+      startTime: initialData?.startTime || '09:00',
+      endTime: initialData?.endTime || '10:00',
+      priority: 'medium',
       technicianId: '',
+      cost: 0,
+      nextMaintenanceDate: '',
       status: 'pending' as Task['status'],
       type: 'intervention' as 'maintenance' | 'intervention',
       maintenanceType: 'preventive' as 'preventive' | 'corrective',
@@ -59,8 +92,8 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
       Object.keys(defaultData).forEach((key) => {
         const k = key as keyof typeof defaultData;
         const value = initialData[k];
-        if (value !== undefined && value !== null) {
-          defaultData[k] = value as any;
+        if (value !== undefined && value !== null && k in defaultData) {
+          (defaultData as Record<keyof TaskFormData, unknown>)[k as keyof TaskFormData] = value;
         }
       });
 
@@ -76,7 +109,7 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
     e.preventDefault();
     const duration = calculateDuration(formData.startTime, formData.endTime);
     onSubmit({
-      ...formData,
+      ...prepareSubmitData(formData),
       duration
     });
   };
@@ -92,6 +125,8 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
             <label className="block text-sm font-medium text-gray-700">Titre</label>
             <input
               type="text"
+              id="task-title"
+              name="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
@@ -103,6 +138,8 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
             <label className="block text-sm font-medium text-gray-700">Client</label>
             <input
               type="text"
+              id="task-client"
+              name="client"
               value={formData.client}
               onChange={(e) => setFormData({ ...formData, client: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
@@ -127,7 +164,7 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
         <div className="col-span-2 flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-gray-900">Informations sur l'équipement</h4>
           <div className="flex items-center text-xs text-gray-500">
-            <Info className="h-4 w-4 mr-1" />
+            <Info className="h-4 w-4 mr-1" aria-hidden="true" />
             Champs optionnels
           </div>
         </div>
@@ -136,8 +173,10 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
           <div className="col-span-2">
             <input
               type="text"
-              value={formData.equipment}
-              onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
+              id="task-equipment"
+              name="equipment"
+              value={formData.equipmentName || ''}
+              onChange={(e) => setFormData({ ...formData, equipmentName: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               placeholder="Type d'équipement"
             />
@@ -146,7 +185,9 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
           <div>
             <input
               type="text"
-              value={formData.brand}
+              id="task-brand"
+              name="brand"
+              value={formData.brand || ''}
               onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               placeholder="Marque"
@@ -156,7 +197,9 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
           <div>
             <input
               type="text"
-              value={formData.model}
+              id="task-model"
+              name="model"
+              value={formData.model || ''}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               placeholder="Modèle"
@@ -166,7 +209,9 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
           <div className="col-span-2">
             <input
               type="text"
-              value={formData.serialNumber}
+              id="task-serial"
+              name="serialNumber"
+              value={formData.serialNumber || ''}
               onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               placeholder="N° série"
@@ -182,7 +227,7 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
             <label className="block text-sm font-medium text-gray-700">Date d'intervention</label>
             <div className="mt-1 relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Clock className="h-4 w-4 text-gray-400" />
+                <Clock className="h-4 w-4 text-gray-400" aria-hidden="true" />
               </div>
               <input
                 type="date"
@@ -347,6 +392,7 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
         <button
           type="submit"
           className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          aria-label={initialData ? "Mettre à jour la tâche" : "Créer une nouvelle tâche"}
         >
           {initialData ? 'Mettre à jour' : 'Créer'}
         </button>

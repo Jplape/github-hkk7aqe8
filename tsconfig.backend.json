@@ -3,8 +3,8 @@
   "compilerOptions": {
     "outDir": "./dist/backend",
     "rootDir": "./src/backend",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "target": "ES2022",
     "esModuleInterop": true,
     "skipLibCheck": true,

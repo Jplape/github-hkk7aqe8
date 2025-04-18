@@ -125,6 +125,7 @@ export default function Calendar() {
           />
           
           <button
+            type="button"
             onClick={() => {
               setSelectedDate(format(currentDate, 'yyyy-MM-dd'));
               setTaskToEdit(null);
@@ -132,7 +133,7 @@ export default function Calendar() {
             }}
             className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
             Nouvelle tâche
           </button>
         </div>

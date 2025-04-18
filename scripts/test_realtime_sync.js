@@ -10,33 +10,35 @@ const args = minimist(process.argv.slice(2), {
 })
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY,
+  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY,
   {
     auth: {
       persistSession: false,
-      autoRefreshToken: false
+      autoRefreshToken: false,
+      detectSessionInUrl: false
     }
   }
 )
 
-// Création et authentification de l'utilisateur de test
-const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-  email: process.env.TEST_USER_EMAIL,
-  password: process.env.TEST_USER_PASSWORD
-})
-
-if (signUpError && signUpError.message !== 'User already registered') {
-  throw signUpError
-}
-
+// Authentification avec le compte admin existant
 const { error: signInError } = await supabase.auth.signInWithPassword({
-  email: process.env.TEST_USER_EMAIL,
-  password: process.env.TEST_USER_PASSWORD
+  email: 'admin@esttmco.com',
+  password: 'admin'
 })
 
 if (signInError) {
   throw signInError
+}
+
+// Vérification que la table 'tasks' existe
+const { data: tables } = await supabase
+  .from('pg_tables')
+  .select('tablename')
+  .eq('schemaname', 'public')
+
+if (!tables?.some(t => t.tablename === 'task')) {
+  throw new Error("La table 'task' n'existe pas dans la base de données")
 }
 
 // Fonction de test individuel
@@ -44,12 +46,14 @@ async function runSingleTest(testId) {
   try {
     const startTime = Date.now()
     
-    // 1. Création de tâche
+    // 1. Création de tâche test
     const { data: task } = await supabase
-      .from('tasks')
-      .insert({ 
-        title: `Test ${testId}`,
-        user_id: supabase.auth.user()?.id 
+      .from('task')
+      .insert({
+        description: `Tâche test 17/04/2025`,
+        status: 'pending',
+        priority: 'medium',
+        created_at: '2025-04-17T00:00:00Z'
       })
       .select()
       .single()
@@ -70,7 +74,7 @@ async function runSingleTest(testId) {
     // 3. Simulation de modification
     setTimeout(async () => {
       await supabase
-        .from('tasks')
+        .from('task')
         .update({ status: 'completed' })
         .eq('id', task.id)
       

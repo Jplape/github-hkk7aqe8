@@ -6,6 +6,7 @@ interface User {
   id: string;
   email?: string;
   phone?: string;
+  role?: string;
   user_metadata?: Record<string, any>;
   app_metadata?: Record<string, any>;
 }

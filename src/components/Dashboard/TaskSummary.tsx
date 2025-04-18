@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Task } from '../../types/task';
 import { format, parseISO, isValid } from 'date-fns';
 import StatusDropdown from '../Tasks/StatusDropdown';
@@ -13,13 +13,19 @@ interface TaskSummaryProps {
 export default function TaskSummary({ tasks, onTaskClick }: TaskSummaryProps) {
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
 
-  const filteredTasks = tasks
-    .filter(task => {
-      console.log('Task status:', task.id, task.status);
-      return selectedStatus === 'all' ? true : task.status === selectedStatus;
-    })
-    .filter(task => task.date && isValid(parseISO(task.date)))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const filteredTasks = useMemo(() => {
+    const filtered = tasks
+      .filter(task => {
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('[Task] Status update:', task.id, task.status);
+        }
+        return selectedStatus === 'all' ? true : task.status === selectedStatus;
+      })
+      .filter(task => task.date && isValid(parseISO(task.date)))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return filtered;
+  }, [tasks, selectedStatus]);
 
   const formatTaskDate = (dateString: string) => {
     try {
@@ -80,7 +86,7 @@ export default function TaskSummary({ tasks, onTaskClick }: TaskSummaryProps) {
 
       <div className="space-y-4">
         {filteredTasks.length > 0 ? (
-          filteredTasks.map(task => (
+          filteredTasks.map((task: Task) => (
             <div
               key={task.id}
               onClick={() => onTaskClick(task)}
@@ -88,10 +94,12 @@ export default function TaskSummary({ tasks, onTaskClick }: TaskSummaryProps) {
             >
               <div className="flex justify-between items-start">
                 <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
-                <StatusDropdown
-                  task={task}
-                  className="text-xs px-2 py-1"
-                />
+                <div className="text-xs px-2 py-1">
+                  <StatusDropdown
+                    taskId={task.id}
+                    currentStatus={task.status}
+                  />
+                </div>
               </div>
               
               <div className="mt-2 space-y-1">
@@ -99,10 +107,12 @@ export default function TaskSummary({ tasks, onTaskClick }: TaskSummaryProps) {
                   <Clock className="h-3 w-3 mr-1" />
                   {formatTaskDate(task.date)} à {task.time ? (typeof task.time === 'string' ? task.time : task.time?.start?.toString()) || 'Heure non définie' : 'Heure non définie'}
                 </div>
-                <div className="flex items-center text-xs text-gray-500">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {task.client ? (typeof task.client === 'string' ? task.client : task.client?.name?.toString() || 'Client non défini') : 'Client non défini'}
-                </div>
+                {task.client_id && (
+                  <div className="flex items-center text-xs text-gray-500">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    Client ID: {task.client_id}
+                  </div>
+                )}
                 {task.technicianId && (
                   <div className="flex items-center text-xs text-gray-500">
                     <User className="h-3 w-3 mr-1" />
