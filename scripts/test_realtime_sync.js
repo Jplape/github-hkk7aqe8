@@ -64,7 +64,7 @@ async function runSingleTest(testId) {
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
-        table: 'tasks',
+        table: 'task',
         filter: `id=eq.${task.id}`
       }, (payload) => {
         console.log(`[${testId}] Changement reçu après ${Date.now() - startTime}ms`)

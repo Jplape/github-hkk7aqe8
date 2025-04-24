@@ -17,6 +17,17 @@ export default defineConfig({
     strictPort: true,
     headers: {
       'Access-Control-Allow-Origin': '*'
+    },
+    // Configuration HMR/WebSocket
+    hmr: {
+      host: 'localhost',
+      port: 3001,
+      protocol: 'ws',
+      overlay: false
+    },
+    watch: {
+      usePolling: true,
+      interval: 100
     }
   },
   preview: {
@@ -47,5 +58,8 @@ export default defineConfig({
         }
       }
     }
-  }
+  },
+  // Debug
+  logLevel: 'info',
+  clearScreen: false
 });

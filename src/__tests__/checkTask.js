@@ -2,7 +2,7 @@ const { supabase } = require('../lib/supabase');
 
 async function checkTask() {
   const { data, error } = await supabase
-    .from('tasks')
+    .from('task')
     .select('*, task_relations(*)')
     .eq('id', 'Avril 07-003')
     .single();

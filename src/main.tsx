@@ -8,7 +8,12 @@ import './styles/accessibility.css';
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Failed to find the root element');
 
-const root = createRoot(rootElement);
+// Vérifier si un root existe déjà
+let root = (window as any).__reactRoot;
+if (!root) {
+  root = createRoot(rootElement);
+  (window as any).__reactRoot = root;
+}
 
 root.render(
   <StrictMode>
@@ -22,3 +27,11 @@ root.render(
     </BrowserRouter>
   </StrictMode>
 );
+
+// Cleanup lors du unmount
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    root.unmount();
+    delete (window as any).__reactRoot;
+  });
+}

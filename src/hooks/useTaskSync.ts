@@ -10,7 +10,7 @@ type TaskInsertPayload = RealtimePostgresInsertPayload<Database['public']['Table
 type TaskUpdatePayload = RealtimePostgresUpdatePayload<Database['public']['Tables']['tasks']['Row']>
 
 export const useTaskSync = () => {
-  const { updateTaskStatus, addTask } = useTaskStore()
+  const { updateTaskStatus, addTask, loadTasks } = useTaskStore()
 
   useEffect(() => {
     const setupChannel = async () => {
@@ -81,9 +81,12 @@ export const useTaskSync = () => {
       }
     }
 
+    // Charger les tâches initiales
+    loadTasks()
+    
     const cleanup = setupChannel()
     return () => {
       cleanup.then(fn => fn?.())
     }
-  }, [updateTaskStatus, addTask])
+  }, [updateTaskStatus, addTask, loadTasks])
 }

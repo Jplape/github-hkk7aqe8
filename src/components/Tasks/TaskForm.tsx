@@ -6,7 +6,7 @@ import { useTeamStore } from '../../store/teamStore';
 export interface TaskFormData extends Partial<Task> {
   startTime: string;
   endTime: string;
-  client: string;
+  client_id: string;
   equipmentName?: string;
   brand?: string;
   model?: string;
@@ -68,7 +68,7 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
     const defaultData: TaskFormData = {
       title: '',
       description: '',
-      client: '',
+      client_id: '',
       equipment: undefined,
       equipmentName: '',
       brand: '',
@@ -138,10 +138,10 @@ function TaskForm({ initialData, onSubmit, showMaintenanceFields = false }: Task
             <label className="block text-sm font-medium text-gray-700">Client</label>
             <input
               type="text"
-              id="task-client"
-              name="client"
-              value={formData.client}
-              onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+              id="task-client_id"
+              name="client_id"
+              value={formData.client_id}
+              onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               required
             />

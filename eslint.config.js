@@ -1,20 +1,18 @@
 // @ts-check
-
 import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
-export default tseslint.config(
+export default [
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.ts", "**/*.tsx"],
     extends: [
       eslint.configs.recommended,
-      ...tseslint.configs.recommended,
     ],
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      '@typescript-eslint': require('@typescript-eslint/eslint-plugin')
     },
     rules: {
       'react-hooks/rules-of-hooks': 'error',
@@ -27,10 +25,10 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      parser: tseslint.parser,
+      parser: require('@typescript-eslint/parser'),
       parserOptions: {
         project: './tsconfig.json',
       },
     },
   },
-);
+];

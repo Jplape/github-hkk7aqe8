@@ -19,7 +19,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuthStore } from './store/authStore';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SyncStatus } from './components/SyncStatus';
 import { useTaskSubscription } from './hooks/useTaskSubscription';
 

@@ -10,11 +10,11 @@ import { fr } from 'date-fns/locale';
 import { Task } from '../types/task';
 import { useSearchParams } from 'react-router-dom';
 
-type SortField = 'id' | 'title' | 'date' | 'status' | 'technicianId' | 'client' | 'equipment';
+type SortField = 'id' | 'title' | 'date' | 'status' | 'technicianId' | 'client_id' | 'equipment';
 type SortDirection = 'asc' | 'desc';
 
 export default function Tasks() {
-  const { tasks } = useTaskStore();
+  const { tasks = [] } = useTaskStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,7 +25,7 @@ export default function Tasks() {
     status: searchParams.get('status') || 'all',
     priority: searchParams.get('priority') || 'all',
     technician: searchParams.get('technician') || 'all',
-    client: searchParams.get('client') || 'all',
+    client_id: searchParams.get('client_id') || 'all',
     equipment: searchParams.get('equipment') || 'all',
     assignment: searchParams.get('assignment') || 'all',
     date: searchParams.get('date') || 'all'
@@ -46,20 +46,30 @@ export default function Tasks() {
   }, [filters, setSearchParams]);
 
   // Get unique clients for filters
-  const clients = Array.from(new Set(tasks.map(task =>
-    typeof task.client === 'string' ? task.client : task.client?.name || ''
-  )));
+  const client_ids = Array.from(new Set(tasks.map(task => task.client_id || '')));
 
   const sortedAndFilteredTasks = useMemo(() => {
+    if (!Array.isArray(tasks)) return [];
+    
     let filteredTasks = filterTasks(
-      tasks.filter(task =>
-        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (typeof task.client === 'string' ? task.client : task.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (task.equipment?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         task.equipment?.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         task.equipment?.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         task.equipment?.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()))
-      ),
+      tasks.filter(task => {
+        if (!task) return false;
+        const titleMatch = (task.title || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const client_idMatch = (task.client_id || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const equipmentNameMatch = task.equipment?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+        const equipmentBrandMatch = task.equipment?.brand?.toLowerCase().includes(searchTerm.toLowerCase());
+        const equipmentModelMatch = task.equipment?.model?.toLowerCase().includes(searchTerm.toLowerCase());
+        const equipmentSerialMatch = task.equipment?.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        return (
+          titleMatch || 
+          client_idMatch ||
+          equipmentNameMatch || 
+          equipmentBrandMatch || 
+          equipmentModelMatch || 
+          equipmentSerialMatch
+        );
+      }),
       filters
     );
 
@@ -82,8 +92,8 @@ export default function Tasks() {
         case 'technicianId':
           comparison = (a.technicianId || '').localeCompare(b.technicianId || '');
           break;
-        case 'client':
-          comparison = a.client.localeCompare(b.client);
+        case 'client_id':
+          comparison = (a.client_id || '').localeCompare(b.client_id || '');
           break;
         case 'equipment':
           comparison = (a.equipment?.name || '').localeCompare(b.equipment?.name || '');
@@ -134,6 +144,11 @@ export default function Tasks() {
     const unhandledRejectionListener = (e: PromiseRejectionEvent) => {
       console.error('Unhandled rejection:', e.reason);
       setError(e.reason?.message || 'Une erreur est survenue');
+      // Log additional context for debugging
+      console.group('Unhandled Rejection Context');
+      console.log('Timestamp:', new Date().toISOString());
+      console.log('Current tasks:', tasks.length);
+      console.groupEnd();
     };
 
     window.addEventListener('error', errorListener);
@@ -204,7 +219,7 @@ export default function Tasks() {
 
           <TaskFilters
             onFilterChange={setFilters}
-            clients={clients}
+            clients={client_ids}
           />
         </div>
 
@@ -232,11 +247,11 @@ export default function Tasks() {
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('client')}
+                  onClick={() => handleSort('client_id')}
                 >
                   <div className="flex items-center space-x-1">
                     <span>Client</span>
-                    <SortIcon field="client" />
+                    <SortIcon field="client_id" />
                   </div>
                 </th>
                 <th 
@@ -294,7 +309,7 @@ export default function Tasks() {
                     {task.title}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {typeof task.client === 'string' ? task.client : task.client?.name || 'Client inconnu'}
+                    {task.client_id || 'Client inconnu'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div>
@@ -314,7 +329,7 @@ export default function Tasks() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {format(new Date(task.date), 'dd MMMM yyyy', { locale: fr })}
+                    {format(new Date(task.date + 'T00:00:00Z'), 'dd MMMM yyyy', { locale: fr })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-1">

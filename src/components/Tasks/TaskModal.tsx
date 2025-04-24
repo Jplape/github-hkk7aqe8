@@ -17,7 +17,7 @@ function convertTaskToFormData(task?: Task | null): TaskFormData | undefined {
     ...task,
     startTime: task.time?.start || '09:00',
     endTime: task.time?.end || '10:00',
-    client: task.client_id || '',
+    client_id: task.client_id || '',
     equipmentName: task.equipment?.name || '',
     brand: task.equipment?.brand || '',
     model: task.equipment?.model || '',

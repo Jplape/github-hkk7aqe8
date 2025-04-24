@@ -1,107 +1,111 @@
-# Spécifications Techniques - Application de Gestion des Tâches
+# Spécifications Fonctionnelles – État du 2025-04-23
 
-## 1. Architecture Globale
-### 1.1 Stack Technologique
-- **Frontend** : 
-  - React 18 + TypeScript
-  - Vite (build tool)
-  - Tailwind CSS + Material-UI
-- **Backend** :
-  - Supabase (PostgreSQL, Auth, Storage)
-  - Node.js pour les fonctions custom
-- **État** : Zustand + React Query
+## 1. Méthode de collecte
+1. Vérification statique :
+   - `npm run lint` (ESLint)
+   - `npm test` (Jest)
+   - Recherche IDE des composants de routage (`<Route`, `createStackNavigator`)
 
-### 1.2 Diagramme d'Architecture
-```mermaid
-graph TD
-  A[Frontend] --> B[Supabase]
-  B --> C[(PostgreSQL)]
-  A --> D[Node.js]
-  D --> C
-```
+2. Vérification dynamique :
+   - Lancement de l'application (`npm run dev`)
+   - Navigation manuelle dans toutes les pages
+   - Vérification du rendu et des fonctionnalités
 
-## 2. Modules Frontend
+3. Croisement avec les tests :
+   - Association des pages avec les tests Jest/Detox correspondants
+   - Vérification de la couverture de test
 
-### 2.1 Authentification
-#### Composants
-- `Login.tsx` : 
-  - Champs : email, password
-  - Validation : regex email, min 8 caractères
-- `Register.tsx` :
-  - Champs additionnels : nom, prénom, rôle
-- `RoleManagement.tsx` :
-  - Gestion des rôles admin/technicien
-  - Tableau des utilisateurs
-  - Mise à jour des rôles en temps réel
+## 2. Contexte rapide
+Ce fichier reflète le fonctionnement courant du projet de suivi de maintenance.
 
-#### Workflow
-1. Soumission formulaire
-2. Appel à Supabase Auth
-3. Redirection vers /dashboard
+## 2. Fonctionnalités implantées
+| Epic | Fonction | Status | Tests | Remarques |
+|------|----------|--------|-------|-----------|
+| Auth & Security | Login JWT + RLS Supabase | ✅ | jest-auth ✓ | - |
+| Auth & Security | Register | ✅ | jest-auth ✓ | - |
+| Calendar | FullCalendar intégration | 🟡 | - | Problème timezone |
+| Tasks | Gestion des tâches | ✅ | jest-tasks ✓ | - |
+| Reports | Génération PDF/Excel | ✅ | - | - |
+| Sync | Synchronisation temps réel | 🟡 | - | Tests intermittents |
 
-### 2.2 Gestion des Tâches
-#### Store (taskStore.ts)
-```typescript
-interface TaskState {
-  tasks: Task[]
-  updateTaskStatus: (id: string, status: TaskStatus) => Promise<void>
-  // ... autres méthodes
-}
-```
+## 3. Fonctionnalités retirées / obsolètes
+- Prototype Chatbot (retiré pour raisons de performance)
 
-#### Composants Clés
-- `StatusDropdown.tsx` :
-  - Props : taskId, currentStatus
-  - États disponibles : ['pending', 'in_progress', 'completed']
+## 4. Routes complètes du système
 
-- `TaskModal.tsx` :
-  - Formulaire complet de création/édition
-  - Validation côté client
+### Routes principales
+| Route | Méthode | Description | Statut |
+|-------|---------|-------------|--------|
+| / | GET | Page d'accueil (Dashboard) | ✅ |
+| /login | GET/POST | Connexion utilisateur | ✅ |
+| /register | GET/POST | Inscription utilisateur | ✅ |
+| /calendar | GET | Calendrier des interventions | 🟡 |
+| /tasks | GET | Liste des tâches | ✅ |
+| /tasks/:id | GET | Détail d'une tâche | ✅ |
+| /intervention-reports | GET | Liste des rapports | ✅ |
+| /intervention-reports/new | GET/POST | Création rapport | ✅ |
+| /intervention-reports/:id | GET/PUT/DELETE | Gestion rapport | ✅ |
+| /teams | GET | Gestion des équipes | ✅ |
+| /clients | GET | Liste des clients | ✅ |
+| /equipment | GET | Inventaire équipements | ✅ |
+| /statistics | GET | Statistiques | ✅ |
+| /settings | GET | Paramètres utilisateur | ✅ |
+| /test-task-sync | GET | Page de test synchronisation | 🟡 |
 
-## 3. API Backend
+### Routes API
+| Route | Méthode | Description |
+|-------|---------|-------------|
+| /api/auth/login | POST | Authentification |
+| /api/auth/register | POST | Inscription |
+| /api/tasks | GET/POST | Gestion tâches |
+| /api/tasks/:id | GET/PUT/DELETE | Opérations sur tâche |
+| /api/reports | GET/POST | Gestion rapports |
+| /api/reports/:id | GET/PUT/DELETE | Opérations sur rapport |
 
-### 3.1 Endpoints Principaux
-| Méthode | Endpoint          | Description                          |
-|---------|-------------------|--------------------------------------|
-| POST    | /api/tasks        | Création tâche                      |
-| PUT     | /api/tasks/:id    | Mise à jour tâche                   |
-| GET     | /api/tasks        | Liste des tâches (avec filtres)     |
+## 5. Points techniques bloquants
+1. **Erreur critique de test** : 
+   - `TypeError: $ is not a function` dans core-js-pure
+   - Bloque l'exécution de tous les tests
+   - Cause probable : conflit de versions de dépendances
 
-### 3.2 Sécurité
-- Row Level Security activée
-- Policies :
-  ```sql
-  CREATE POLICY "Lecture tâches" ON tasks
-    FOR SELECT USING (auth.uid() = technician_id);
-  ```
+2. Problème timezone dans FullCalendar
+3. Tests de synchronisation intermittents
 
-## 4. Exigences Non-Fonctionnelles
+## 6. Tâches immédiates (Priorité Maximum)
+1. **Résolution erreur core-js-pure** :
+   ```bash
+   rm -rf node_modules package-lock.json
+   npm cache clean --force
+   npm install
+   ```
+   - Vérifier que core-js-pure est en version ^3.30+ dans package.json
+   - Si persiste, forcer la version :
+   ```bash
+   npm install core-js-pure@3.30.2
+   ```
 
-### 4.1 Performance
-- Temps de réponse API : <300ms
-- Chargement initial : <2s
-- Taille bundle JS : <500kB
+2. Corriger le timezone dans FullCalendar :
+   - Vérifier la configuration du timezoneProvider
+   - Forcer UTC dans les paramètres
 
-### 4.2 Sécurité
-- HTTPS obligatoire
-- Validation des inputs côté serveur
-- Journalisation des accès
+3. Stabiliser les tests de synchronisation :
+   - Ajouter des timeouts plus longs
+   - Mocker les appels réseau dans les tests
 
-### 4.3 Internationalisation
-- Support multilingue (fr/en)
-- Format dates localisé
+## 7. Changelog
+- 2025-04-23 : Documentation complète des dépendances et routes
+- 2025-04-22 : Correction authentification JWT
+- 2025-04-20 : Ajout génération PDF/Excel
 
-## 5. Dépendances Techniques
-- **Frontend** :
-  - react-router-dom v6
-  - axios v1.3
-- **Backend** :
-  - supabase-js v2
-  - express v4
+## Annexes techniques
 
-## 6. État d'Avancement
-| Composant       | Statut      | Tests |
-|-----------------|-------------|-------|
-| Authentification | Production  | 100%  |
-| Gestion Tâches  | Beta        | 80%   |
-| API Tasks       | Production  | 100%  |
+### Dépendances principales
+- **Frontend** : React 18, TypeScript, TailwindCSS
+- **State Management** : Zustand, React Query
+- **Backend** : Express, Mongoose
+- **Base de données** : Supabase (PostgreSQL)
+
+### Architecture notable
+- Système de state management hybride
+- Intégration complète avec Supabase
+- Support PDF/Excel

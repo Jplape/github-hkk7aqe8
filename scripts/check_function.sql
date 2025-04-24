@@ -1,0 +1,1 @@
+SELECT proname, prosrc FROM pg_proc WHERE proname = 'enable_realtime_for_table';

@@ -17,7 +17,7 @@ export default function TaskFilters({ onFilterChange, clients }: TaskFiltersProp
     status: searchParams.get('status') || 'all',
     priority: searchParams.get('priority') || 'all',
     technician: searchParams.get('technician') || 'all',
-    client: searchParams.get('client') || 'all',
+    client_id: searchParams.get('client_id') || 'all',
     equipment: searchParams.get('equipment') || 'all',
     assignment: searchParams.get('assignment') || 'all',
     date: searchParams.get('date') || 'all'
@@ -28,7 +28,7 @@ export default function TaskFilters({ onFilterChange, clients }: TaskFiltersProp
     if (filters.status !== 'all') newFilters.push('status');
     if (filters.priority !== 'all') newFilters.push('priority');
     if (filters.technician !== 'all') newFilters.push('technician');
-    if (filters.client !== 'all') newFilters.push('client');
+    if (filters.client_id !== 'all') newFilters.push('client_id');
     if (filters.equipment !== 'all') newFilters.push('equipment');
     if (filters.assignment !== 'all') newFilters.push('assignment');
     if (filters.date !== 'all') newFilters.push('date');
@@ -55,7 +55,7 @@ export default function TaskFilters({ onFilterChange, clients }: TaskFiltersProp
       status: 'all',
       priority: 'all',
       technician: 'all',
-      client: 'all',
+      client_id: 'all',
       equipment: 'all',
       assignment: 'all',
       date: 'all'
@@ -142,8 +142,8 @@ export default function TaskFilters({ onFilterChange, clients }: TaskFiltersProp
             Client
           </label>
           <select
-            value={filters.client}
-            onChange={(e) => setFilters({ ...filters, client: e.target.value })}
+            value={filters.client_id}
+            onChange={(e) => setFilters({ ...filters, client_id: e.target.value })}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           >
             <option value="all">Tous les clients</option>
