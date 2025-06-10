@@ -16,6 +16,7 @@ interface TaskState {
   loadTasks: () => Promise<void>;
   addTask: (task: Omit<Task, 'id'>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Omit<Task, 'id'>>) => Promise<void>;
+  updateTaskStatus: (id: string, status: Task['status']) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>()(
@@ -160,6 +161,52 @@ export const useTaskStore = create<TaskState>()(
           pendingSyncs: get().pendingSyncs - 1
         });
         throw new Error(`Failed to update task after ${retries} attempts: ${(lastError as Error)?.message || 'Unknown error'}`);
+      },
+
+      updateTaskStatus: async (id: string, status: Task['status'], retries = 3) => {
+        const oldTask = get().tasks.find(t => t.id === id);
+        if (!oldTask) return;
+
+        set({
+          tasks: get().tasks.map(t =>
+            t.id === id ? {...t, status, _status: 'syncing'} : t
+          ),
+          pendingSyncs: get().pendingSyncs + 1
+        });
+
+        let lastError;
+        for (let i = 0; i < retries; i++) {
+          try {
+            const { data, error } = await supabase
+              .from('tasks')
+              .update({
+                status,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', id)
+              .select()
+              .single();
+
+            if (error) throw new Error(`Supabase error: ${error.message}`);
+
+            set({
+              tasks: get().tasks.map(t => t.id === id ? data : t),
+              pendingSyncs: get().pendingSyncs - 1
+            });
+            return;
+          } catch (error) {
+            lastError = error;
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+          }
+        }
+
+        set({
+          tasks: get().tasks.map(t =>
+            t.id === id ? {...oldTask, _status: 'error'} : t
+          ),
+          pendingSyncs: get().pendingSyncs - 1
+        });
+        throw new Error(`Failed to update task status after ${retries} attempts: ${(lastError as Error)?.message || 'Unknown error'}`);
       }
     }),
     {name: 'task-storage'}
